@@ -5,6 +5,7 @@ import { mockUsers, findUserByIdOrEmail, saveDynamicUser } from '../services/moc
 import {
   registerCitizen,
   loginUser,
+  googleAuth,
   forgotPassword,
   resetPassword,
   verifyAdminInvitation,
@@ -19,6 +20,7 @@ const router = express.Router();
 // ==========================================
 router.post('/auth/register', registerCitizen);
 router.post('/auth/login', loginUser);
+router.post('/auth/google', googleAuth);
 router.post('/auth/forgot-password', forgotPassword);
 router.post('/auth/reset-password', resetPassword);
 router.post('/auth/verify-invite', verifyAdminInvitation);

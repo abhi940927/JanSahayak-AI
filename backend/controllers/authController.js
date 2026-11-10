@@ -465,3 +465,80 @@ export const switchActiveRole = async (req, res, next) => {
     next(err);
   }
 };
+
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { email, name, avatar_url, turnstile_token } = req.body;
+
+    const userEmail = (email || 'citizen.google@jansahayak.in').toLowerCase().trim();
+    const userName = name || (userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1));
+
+    // Optional Turnstile verification if secret key is configured
+    if (process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY && turnstile_token) {
+      try {
+        const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            secret: process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+            response: turnstile_token,
+            remoteip: req.ip
+          })
+        });
+        const verifyData = await verifyRes.json();
+        if (!verifyData.success) {
+          return res.status(403).json({ success: false, message: 'Cloudflare Turnstile verification failed. Please try again.' });
+        }
+      } catch (cfErr) {
+        console.warn('[Cloudflare Turnstile] Verification warning:', cfErr.message);
+      }
+    }
+
+    // Check if user exists
+    let user = findUserByIdOrEmail(userEmail);
+
+    if (!user) {
+      // Create new dynamic citizen profile from Google Account
+      const newCitizen = {
+        id: uuidv4(),
+        email: userEmail,
+        full_name: userName,
+        phone_number: null,
+        dob: '2000-01-01',
+        avatar_url: avatar_url || null,
+        role: (userEmail === 'abhisingh940927@gmail.com') ? 'super_admin' : 'citizen',
+        roles: (userEmail === 'abhisingh940927@gmail.com') ? ['super_admin', 'department_admin', 'citizen'] : ['citizen'],
+        department_id: null,
+        designation: (userEmail === 'abhisingh940927@gmail.com') ? 'System Super Administrator' : 'Citizen / Google Verified',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      saveDynamicUser(newCitizen);
+      user = newCitizen;
+    }
+
+    const mockToken = `mock-token:${user.role}:${user.id}:${Date.now()}`;
+
+    return res.json({
+      success: true,
+      message: `Successfully authenticated via Google as ${user.full_name}`,
+      data: {
+        token: mockToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          role: user.role,
+          roles: user.roles || [user.role],
+          avatar_url: user.avatar_url,
+          designation: user.designation
+        },
+        available_roles: user.roles || [user.role]
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};

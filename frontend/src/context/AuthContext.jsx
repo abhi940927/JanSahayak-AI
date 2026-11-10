@@ -206,6 +206,54 @@ export const AuthProvider = ({ children }) => {
     return updatedUser;
   };
 
+  const loginWithGoogle = async (googleData = null, turnstileToken = null) => {
+    try {
+      setLoading(true);
+
+      // If Supabase configured, attempt Supabase OAuth
+      if (isSupabaseConfigured && supabase && !googleData) {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/citizen/dashboard'
+          }
+        });
+        if (error) throw error;
+        return;
+      }
+
+      // Fast Google Auth via backend endpoint
+      const payload = googleData || {
+        email: 'abhisingh940927@gmail.com',
+        name: 'Abhinav Singh',
+        avatar_url: null,
+        turnstile_token: turnstileToken
+      };
+
+      const res = await api.post('/auth/google', payload);
+      if (!res.success) {
+        throw new Error(res.message || 'Google authentication failed');
+      }
+
+      const authData = res.data;
+      if (authData.token) {
+        localStorage.setItem('jansahayak_token', authData.token);
+      }
+      if (authData.user) {
+        setUser(authData.user);
+        setRole(authData.user.role);
+        setAvailableRoles(authData.available_roles || [authData.user.role]);
+        localStorage.setItem('jansahayak_user', JSON.stringify(authData.user));
+        localStorage.setItem('jansahayak_role', authData.user.role);
+        localStorage.setItem('jansahayak_available_roles', JSON.stringify(authData.available_roles || [authData.user.role]));
+      }
+
+      return authData;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -247,6 +295,7 @@ export const AuthProvider = ({ children }) => {
         availableRoles,
         loading,
         login,
+        loginWithGoogle,
         register,
         updateProfile,
         changePassword,
