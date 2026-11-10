@@ -22,6 +22,7 @@ import { OfficerDashboard } from './pages/officer/OfficerDashboard';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { ProfilePage } from './pages/common/ProfilePage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AIChatbot } from './components/common/AIChatbot';
 
 // Role Protected Guard
 const ProtectedRoute = ({ allowedRoles = [], children }) => {
@@ -133,6 +134,7 @@ function AppContent() {
         </Routes>
       </div>
       {!isDashboardRoute && <Footer />}
+      <AIChatbot />
     </div>
   );
 }

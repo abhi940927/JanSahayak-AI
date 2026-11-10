@@ -64,6 +64,11 @@ class TranslateRequest(BaseModel):
     text: str
     target_lang: Optional[str] = "en"
 
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    history: Optional[List[Dict[str, str]]] = None
+    user_context: Optional[Dict[str, Any]] = None
+
 # ------------------------------------------------------------------------------
 # Endpoints
 # ------------------------------------------------------------------------------
@@ -118,6 +123,83 @@ def summarize_complaint(req: SummarizeRequest):
 @app.post("/api/ai/translate")
 def translate_complaint(req: TranslateRequest):
     return process_multilingual_text(req.text, req.target_lang)
+
+@app.post("/api/ai/chat")
+def chat_assistant(req: ChatRequest):
+    msg = req.message.strip()
+    lang_info = detect_language(msg)
+    lang_code = lang_info.get("language_code", "en") if isinstance(lang_info, dict) else "en"
+    is_hindi = lang_code in ["hi", "hi-Latn"] or any('\u0900' <= c <= '\u097f' for c in msg)
+
+    lower = msg.lower()
+    greetings = ["hi", "hello", "hey", "namaste", "pranam", "kaise ho", "help", "नमस्ते", "प्रणाम", "हेलो", "हाय"]
+
+    # Check for simple greeting
+    if any(lower == g or lower.startswith(g + " ") for g in greetings) and len(msg.split()) <= 3:
+        if is_hindi:
+            reply = (
+                "नमस्ते! मैं जनसहायक AI सहायक हूँ। 🏛️\n"
+                "आप किसी भी सरकारी नागरिक समस्या (सड़क, सीवर, बिजली, पानी, सफाई, पुलिस, राशन, आदि) के बारे में यहाँ सीधे लिख सकते हैं। "
+                "आपको कोई बड़ा फॉर्म भरने की आवश्यकता नहीं है—मैं आपकी समस्या समझकर सीधे शिकायत दर्ज करवा दूंगा!"
+            )
+        else:
+            reply = (
+                "Hello! I am your JanSahayak AI Assistant. 🏛️\n"
+                "You can tell me about any civic problem (roads, water, electricity, sanitation, police, ration, etc.) directly in plain English or Hindi. "
+                "No need to fill out long forms—I will automatically detect the department, classify your grievance, and file it for you with one click!"
+            )
+        return {
+            "reply": reply,
+            "detected_language": "hi" if is_hindi else "en",
+            "grievance_draft": None
+        }
+
+    # Grievance / Civic issue detection & classification
+    pred = classifier.predict(msg)
+    dept_name = pred.get("predicted_department_name", pred.get("predicted_department"))
+    dept_code = pred.get("predicted_department")
+    cat_name = pred.get("predicted_category")
+    priority = pred.get("predicted_priority", "medium")
+    confidence = pred.get("confidence_score", 0.90)
+
+    # Clean title formulation
+    title = msg.split(".")[0].split("\n")[0][:80].strip()
+    if len(title) < 15:
+        title = f"{cat_name} - {dept_name}"
+
+    grievance_draft = {
+        "title": title,
+        "description": msg,
+        "department_code": dept_code,
+        "department_name": dept_name,
+        "category_name": cat_name,
+        "priority": priority,
+        "confidence_score": confidence,
+        "ready_to_file": True
+    }
+
+    if is_hindi:
+        reply = (
+            f"मैंने आपकी नागरिक समस्या को समझ लिया है। 🔍\n\n"
+            f"• **लक्षित विभाग (Department):** {dept_name}\n"
+            f"• **शिकायत श्रेणी (Category):** {cat_name}\n"
+            f"• **प्राथमिकता (Priority):** {priority.upper()}\n\n"
+            f"मैंने आपकी शिकायत का ड्राफ्ट नीचे तैयार कर दिया है। आपको शिकायत फॉर्म भरने की जरूरत नहीं है—बस नीचे दिए गए **'तुरंत शिकायत दर्ज करें'** बटन पर क्लिक करें!"
+        )
+    else:
+        reply = (
+            f"I have analyzed your civic grievance in real-time. 🔍\n\n"
+            f"• **Target Department:** {dept_name} ({dept_code})\n"
+            f"• **Issue Category:** {cat_name}\n"
+            f"• **Assessed Urgency:** {priority.upper()}\n\n"
+            f"I have prepared your grievance card below. You do not need to fill out the form page—simply verify and click **'File Grievance Instantly'**!"
+        )
+
+    return {
+        "reply": reply,
+        "detected_language": "hi" if is_hindi else "en",
+        "grievance_draft": grievance_draft
+    }
 
 if __name__ == "__main__":
     port = int(os.getenv("AI_PORT", 8000))

@@ -60,6 +60,66 @@ export const mockDepartments = [
     contact_phone: '+91 11 2322 0006',
     sla_hours_default: 24,
     is_active: true
+  },
+  {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17',
+    name: 'Police & Public Law Enforcement',
+    code: 'POL',
+    description: 'Public safety, community policing, evening patrolling, anti-social nuisance, and cyber fraud reporting.',
+    contact_email: 'police-helpline@jansahayak.gov.in',
+    contact_phone: '+91 11 2322 0112',
+    sla_hours_default: 24,
+    is_active: true
+  },
+  {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18',
+    name: 'Fire & Emergency Disaster Response',
+    code: 'DFS',
+    description: 'Fire hazard mitigation, chemical spills, emergency rescue operations, and commercial fire NOC inspections.',
+    contact_email: 'fire-emergency@jansahayak.gov.in',
+    contact_phone: '+91 11 2322 0101',
+    sla_hours_default: 12,
+    is_active: true
+  },
+  {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19',
+    name: 'Environment, Pollution Control & Forest',
+    code: 'EFD',
+    description: 'Air pollution monitoring, industrial emissions, construction dust, illegal tree felling, and green cover conservation.',
+    contact_email: 'pollution-control@jansahayak.gov.in',
+    contact_phone: '+91 11 2322 0007',
+    sla_hours_default: 48,
+    is_active: true
+  },
+  {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20',
+    name: 'Women & Child Development (WCD)',
+    code: 'WCD',
+    description: 'Women emergency distress helpline, Anganwadi center services, child nutrition, and welfare pension grievance.',
+    contact_email: 'wcd-welfare@jansahayak.gov.in',
+    contact_phone: '+91 11 2322 0181',
+    sla_hours_default: 24,
+    is_active: true
+  },
+  {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21',
+    name: 'Food, Civil Supplies & Consumer Affairs',
+    code: 'FCS',
+    description: 'Ration card distribution, fair price shop irregularities, food grain adulteration, and consumer rights protection.',
+    contact_email: 'ration-supplies@jansahayak.gov.in',
+    contact_phone: '+91 11 2322 0196',
+    sla_hours_default: 48,
+    is_active: true
+  },
+  {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    name: 'Revenue & Land Administration',
+    code: 'REV',
+    description: 'Property mutation delays, land record corrections, domicile & caste certificates, and encroachment on public revenue land.',
+    contact_email: 'revenue-redressal@jansahayak.gov.in',
+    contact_phone: '+91 11 2322 0008',
+    sla_hours_default: 72,
+    is_active: true
   }
 ];
 
@@ -108,6 +168,54 @@ export const mockCategories = [
     description: 'Discolored, foul-smelling, or toxic tap water supply.',
     default_priority: 'critical',
     sla_hours: 12
+  },
+  {
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c16',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17',
+    name: 'Anti-Social Elements & Public Harassment',
+    code: 'POL_NUISANCE',
+    default_priority: 'high',
+    sla_hours: 12
+  },
+  {
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c19',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18',
+    name: 'Fire Safety Violation & Blocked Emergency Exit',
+    code: 'DFS_VIOLATION',
+    default_priority: 'critical',
+    sla_hours: 12
+  },
+  {
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c21',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19',
+    name: 'Industrial Toxic Fumes & Severe Air Pollution',
+    code: 'EFD_AIR',
+    default_priority: 'high',
+    sla_hours: 24
+  },
+  {
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c23',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20',
+    name: 'Women Welfare Assistance & Safety Helpline',
+    code: 'WCD_WOMEN',
+    default_priority: 'critical',
+    sla_hours: 12
+  },
+  {
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c25',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21',
+    name: 'Ration Dealer Black Marketing & Grain Diversion',
+    code: 'FCS_RATION',
+    default_priority: 'high',
+    sla_hours: 24
+  },
+  {
+    id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c27',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    name: 'Unreasonable Delay in Property Mutation / Dakhil Kharij',
+    code: 'REV_MUTATION',
+    default_priority: 'medium',
+    sla_hours: 72
   }
 ];
 

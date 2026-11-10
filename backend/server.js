@@ -43,6 +43,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount Routes
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    const response = await axios.post(`${aiUrl}/api/ai/chat`, req.body, { timeout: 8000 });
+    return res.json(response.data);
+  } catch (err) {
+    return res.json({
+      reply: "Namaste! I am currently processing your request. Please mention your issue details (e.g. road pothole, water leakage, power cut, garbage) and location.",
+      detected_language: "en",
+      grievance_draft: null
+    });
+  }
+});
+
 app.use('/api', authRoutes);
 app.use('/api', departmentRoutes);
 app.use('/api/complaints', complaintRoutes);
