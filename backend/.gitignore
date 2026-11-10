@@ -1,0 +1,13 @@
+# Backend Gitignore
+.env
+.env.*
+*.env
+!.env.example
+node_modules/
+dist/
+build/
+logs/
+*.log
+scratch/
+uploads/
+.DS_Store

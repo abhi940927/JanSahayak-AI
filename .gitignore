@@ -1,35 +1,173 @@
-# Node dependencies
-node_modules/
-.npm/
+# ==============================================================================
+# JANSAHAYAK AI - MASTER GITIGNORE
+# ==============================================================================
 
-# Build artifacts
-dist/
-build/
-.cache/
-
-# Environment variables
+# ------------------------------------------------------------------------------
+# 1. ENVIRONMENT VARIABLES & SECRETS (STRICT - NEVER COMMIT TO GIT)
+# ------------------------------------------------------------------------------
 .env
-.env.local
-.env.*.local
+.env.*
 *.env
+!.env.example
+!.env.template
 
-# Python Virtual Environment and Bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-env/
-*.egg-info/
-.pytest_cache/
+# Secret Keys, Certificates & Credentials
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.id_rsa
+*.id_dsa
+secrets/
+credentials.json
+service-account*.json
 
-# Logs
-logs/
-*.log
+# ------------------------------------------------------------------------------
+# 2. NODE.JS & JAVASCRIPT PACKAGES
+# ------------------------------------------------------------------------------
+node_modules/
+*/node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Package manager logs & caches
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
 
-# OS specific files
+# ------------------------------------------------------------------------------
+# 3. BUILD OUTPUTS & BUNDLERS (FRONTEND & BACKEND)
+# ------------------------------------------------------------------------------
+dist/
+*/dist/
+frontend/dist/
+build/
+*/build/
+out/
+.next/
+.nuxt/
+.cache/
+.vite/
+.parcel-cache/
+.turbo/
+
+# ------------------------------------------------------------------------------
+# 4. PYTHON, FASTAPI & AI MICROSERVICE
+# ------------------------------------------------------------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+
+# Python Virtual Environments
+.venv/
+*/.venv/
+venv/
+*/venv/
+env/
+*/env/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Unit tests, coverage & typing
+.pytest_cache/
+*/.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# Downloaded HuggingFace/SentenceTransformer Models & Weights
+models/downloads/
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# ------------------------------------------------------------------------------
+# 5. LOGS, DATABASES & RUNTIME TEMP FILES
+# ------------------------------------------------------------------------------
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+temp/
+tmp/
+scratch/
+uploads/
+*.tmp
+
+# ------------------------------------------------------------------------------
+# 6. OPERATING SYSTEM & EDITOR / IDE ARTIFACTS
+# ------------------------------------------------------------------------------
+# macOS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (IntelliJ, WebStorm, PyCharm)
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Miscellaneous editors
+*.swp
+*.swo
+*~
+*.bak
