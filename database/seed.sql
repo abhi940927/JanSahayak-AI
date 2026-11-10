@@ -1,6 +1,5 @@
 -- ==============================================================================
--- JANSAHAYAK AI - REALISTIC SEED DATA
--- Departments and Categories Seed File
+-- JANSAHAYAK AI - MASTER PRODUCTION SEED DATA
 -- ==============================================================================
 
 -- 1. Insert Core Government Departments
@@ -47,3 +46,104 @@ VALUES
     ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c14', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Government Clinic Staff Negligence', 'HFW_STAFF', 'Lack of attending medical doctors or emergency assistance.', 'high', 24),
     ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Mosquito Breeding / Vector-Borne Threat', 'HFW_MOSQUITO', 'Stagnant water pools causing dengue/malaria outbreak risks.', 'high', 48)
 ON CONFLICT (department_id, name) DO NOTHING;
+
+-- 3. Realistic Evaluation Profiles (Mapped to UUIDs)
+-- Note: When deployed in Supabase Auth, these UUIDs align with auth.users records
+INSERT INTO public.profiles (id, email, full_name, phone_number, role, roles, department_id, designation, dob)
+VALUES
+    -- Super Admin
+    ('00000000-0000-0000-0000-000000000001', 'admin.nodal@jansahayak.gov.in', 'Dr. Anandita Sharma', '+91 98100 12345', 'super_admin', ARRAY['super_admin', 'department_admin']::TEXT[], NULL, 'Principal Director & Chief Grievance Officer', '1982-04-15'),
+    
+    -- Department Admin (PWD)
+    ('00000000-0000-0000-0000-000000000002', 'deptadmin.pwd@jansahayak.gov.in', 'Vikramaditya Rathore', '+91 98100 23456', 'department_admin', ARRAY['department_admin']::TEXT[], 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Superintending Engineer & Dept Administrator', '1985-08-22'),
+    
+    -- Field Officer (MCD)
+    ('00000000-0000-0000-0000-000000000003', 'officer.rajesh@jansahayak.gov.in', 'Rajesh Verma', '+91 98100 34567', 'officer', ARRAY['officer']::TEXT[], 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Senior Sanitary Field Inspector', '1990-11-05'),
+    
+    -- Citizen
+    ('00000000-0000-0000-0000-000000000004', 'citizen.priya@example.com', 'Priya Deshmukh', '+91 98765 43210', 'citizen', ARRAY['citizen']::TEXT[], NULL, 'Resident Citizen', '1996-03-12')
+ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    designation = EXCLUDED.designation,
+    department_id = EXCLUDED.department_id,
+    roles = EXCLUDED.roles;
+
+-- 4. Multi-Role Assignments in public.user_roles
+INSERT INTO public.user_roles (user_id, role, department_id)
+VALUES
+    ('00000000-0000-0000-0000-000000000001', 'super_admin', NULL),
+    ('00000000-0000-0000-0000-000000000001', 'department_admin', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12'),
+    ('00000000-0000-0000-0000-000000000002', 'department_admin', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12'),
+    ('00000000-0000-0000-0000-000000000003', 'officer', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'),
+    ('00000000-0000-0000-0000-000000000004', 'citizen', NULL)
+ON CONFLICT (user_id, role, department_id) DO NOTHING;
+
+-- 5. Realistic Sample Grievances Across Lifecycle States
+INSERT INTO public.complaints (
+    id, 
+    tracking_number, 
+    citizen_id, 
+    department_id, 
+    category_id, 
+    title, 
+    description, 
+    status, 
+    priority, 
+    address, 
+    city, 
+    state, 
+    pincode, 
+    latitude, 
+    longitude, 
+    sla_due_at
+)
+VALUES
+    (
+        'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01',
+        'GRV-2026-MCD-001',
+        '00000000-0000-0000-0000-000000000004',
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c01',
+        'Severe Waste Accumulation at Block B Community Market',
+        'Large uncollected garbage heap near the community market gate is causing severe health concerns and foul odor.',
+        'assigned',
+        'medium',
+        'Block B Market, Sector 14',
+        'New Delhi',
+        'Delhi',
+        '110001',
+        28.6139,
+        77.2090,
+        timezone('utc'::text, now()) + INTERVAL '48 hours'
+    ),
+    (
+        'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b02',
+        'GRV-2026-PWD-002',
+        '00000000-0000-0000-0000-000000000004',
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
+        'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c04',
+        'Dangerous Deep Pothole on Outer Ring Road Underpass',
+        'Deep cave-in crater on the left lane near the underpass has damaged multiple two-wheelers during evening rush hour.',
+        'in_progress',
+        'high',
+        'Outer Ring Road Underpass, Gate 3',
+        'New Delhi',
+        'Delhi',
+        '110025',
+        28.5355,
+        77.2410,
+        timezone('utc'::text, now()) + INTERVAL '24 hours'
+    )
+ON CONFLICT (tracking_number) DO NOTHING;
+
+-- 6. Assignments for Active Grievances
+INSERT INTO public.complaint_assignments (complaint_id, officer_id, assigned_by, assignment_status, notes)
+VALUES
+    (
+        'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01',
+        '00000000-0000-0000-0000-000000000003',
+        '00000000-0000-0000-0000-000000000001',
+        'assigned',
+        'Assigned to Sanitary Inspector Rajesh Verma for site clearance.'
+    )
+ON CONFLICT DO NOTHING;

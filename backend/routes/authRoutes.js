@@ -32,7 +32,7 @@ router.post('/auth/switch-role', authenticateUser, switchActiveRole);
 // ==========================================
 
 // Get currently authenticated user profile
-router.get('/profile', authenticateUser, (req, res) => {
+const handleGetProfile = (req, res) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: 'Authentication required' });
   }
@@ -41,10 +41,13 @@ router.get('/profile', authenticateUser, (req, res) => {
     success: true,
     data: req.user
   });
-});
+};
+
+router.get('/profile', authenticateUser, handleGetProfile);
+router.get('/auth/profile', authenticateUser, handleGetProfile);
 
 // Update personal profile information
-router.patch('/profile', authenticateUser, async (req, res, next) => {
+const handleUpdateProfile = async (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
@@ -112,7 +115,12 @@ router.patch('/profile', authenticateUser, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.patch('/profile', authenticateUser, handleUpdateProfile);
+router.put('/profile', authenticateUser, handleUpdateProfile);
+router.patch('/auth/profile', authenticateUser, handleUpdateProfile);
+router.put('/auth/profile', authenticateUser, handleUpdateProfile);
 
 // Change user password securely
 router.post('/profile/change-password', authenticateUser, async (req, res, next) => {

@@ -27,10 +27,13 @@ export const updateStatusSchema = z.object({
     'assigned',
     'in_progress',
     'under_review',
+    'pending_information',
+    'resolution_submitted',
     'resolved',
     'closed',
     'rejected',
-    'reopened'
+    'reopened',
+    'escalated'
   ]),
   remarks: z.string().min(5, 'Remarks are required for status updates'),
   resolution_proof_url: z.string().url().optional()

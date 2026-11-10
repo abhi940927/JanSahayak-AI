@@ -224,8 +224,8 @@ export const AuthProvider = ({ children }) => {
 
       // Fast Google Auth via backend endpoint
       const payload = googleData || {
-        email: 'abhisingh940927@gmail.com',
-        name: 'Abhinav Singh',
+        email: 'citizen.user@gmail.com',
+        name: 'Citizen User',
         avatar_url: null,
         turnstile_token: turnstileToken
       };

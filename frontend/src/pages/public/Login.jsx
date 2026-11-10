@@ -208,10 +208,16 @@ export const Login = () => {
     try {
       setGoogleLoading(true);
       setError('');
+      
+      const targetEmail = email && email.includes('@') ? email.trim().toLowerCase() : 'citizen.user@gmail.com';
+      const targetName = email && email.includes('@') 
+        ? email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        : 'Citizen User';
+
       const res = await loginWithGoogle(
         {
-          email: 'abhisingh940927@gmail.com',
-          name: 'Abhinav Singh',
+          email: targetEmail,
+          name: targetName,
           avatar_url: null,
           turnstile_token: turnstileToken
         },

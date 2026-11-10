@@ -160,33 +160,26 @@ export const mockUsers = [
   {
     id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04',
     email: 'superadmin@jansahayak.gov.in',
-    full_name: 'Dr. Vikram Malhotra',
-    phone_number: '+91 98333 44556',
-    dob: '1975-03-30',
-    avatar_url: null,
-    role: 'super_admin',
-    roles: ['super_admin'],
-    department_id: null,
-    designation: 'Principal Secretary of Governance',
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: '2026-01-01T00:00:00.000Z'
-  },
-  {
-    id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u99',
-    email: 'abhisingh940927@gmail.com',
-    full_name: 'Abhinav Singh',
-    phone_number: '+91 99999 88888',
-    dob: '1995-09-27',
+    full_name: 'Dr. Anandita Sharma',
+    phone_number: '+91 98100 12345',
+    dob: '1982-04-15',
     avatar_url: null,
     role: 'super_admin',
     roles: ['super_admin', 'department_admin'],
-    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    designation: 'Principal System Administrator & Nodal Director',
+    department_id: null,
+    designation: 'Principal Director & Chief Grievance Officer',
     is_active: true,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z'
   }
+];
+
+export const mockUserRoles = [
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u01', role: 'citizen', department_id: null },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u02', role: 'officer', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u03', role: 'department_admin', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04', role: 'super_admin', department_id: null },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04', role: 'department_admin', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' }
 ];
 
 export const mockInvitations = [

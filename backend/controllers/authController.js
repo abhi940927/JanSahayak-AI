@@ -144,9 +144,6 @@ export const loginUser = async (req, res, next) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check designated admin account provisioning: abhisingh940927@gmail.com
-    const isDesignatedAdmin = (normalizedEmail === 'abhisingh940927@gmail.com');
-
     if (isSupabaseConfigured) {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
@@ -168,16 +165,27 @@ export const loginUser = async (req, res, next) => {
         return res.status(403).json({ success: false, message: 'Account is deactivated or unauthorized' });
       }
 
-      const userRoles = isDesignatedAdmin
-        ? ['super_admin', 'department_admin']
-        : (profile.roles || [profile.role]);
+      // Fetch user authorized roles from user_roles relation
+      const { data: roleRecords } = await supabase
+        .from('user_roles')
+        .select('role, department_id')
+        .eq('user_id', authData.user.id);
+
+      let userRoles = [];
+      if (roleRecords && roleRecords.length > 0) {
+        userRoles = Array.from(new Set(roleRecords.map(r => r.role)));
+      } else if (Array.isArray(profile.roles) && profile.roles.length > 0) {
+        userRoles = profile.roles;
+      } else {
+        userRoles = [profile.role || 'citizen'];
+      }
 
       // Check role authorization for portal context
-      let activeRole = profile.role;
+      let activeRole = profile.role || userRoles[0];
       if (portal_context && userRoles.includes(portal_context)) {
         activeRole = portal_context;
-      } else if (isDesignatedAdmin) {
-        activeRole = portal_context === 'department_admin' ? 'department_admin' : 'super_admin';
+      } else if (userRoles.includes('super_admin')) {
+        activeRole = 'super_admin';
       }
 
       // Validate portal context permission
@@ -204,10 +212,12 @@ export const loginUser = async (req, res, next) => {
             roles: userRoles,
             department_id: profile.department_id,
             designation: profile.designation,
-            avatar_url: profile.avatar_url
+            avatar_url: profile.avatar_url,
+            dob: profile.dob,
+            phone_number: profile.phone_number
           },
           available_roles: userRoles,
-          requires_role_selection: isDesignatedAdmin && !portal_context
+          requires_role_selection: userRoles.length > 1 && !portal_context
         }
       });
     }
@@ -230,15 +240,15 @@ export const loginUser = async (req, res, next) => {
       }
     }
 
-    const userRoles = isDesignatedAdmin
-      ? ['super_admin', 'department_admin']
-      : (user.roles || [user.role]);
+    const userRoles = (Array.isArray(user.roles) && user.roles.length > 0)
+      ? user.roles
+      : [user.role || 'citizen'];
 
-    let activeRole = user.role;
+    let activeRole = user.role || userRoles[0];
     if (portal_context && userRoles.includes(portal_context)) {
       activeRole = portal_context;
-    } else if (isDesignatedAdmin) {
-      activeRole = portal_context === 'department_admin' ? 'department_admin' : 'super_admin';
+    } else if (userRoles.includes('super_admin')) {
+      activeRole = 'super_admin';
     }
 
     // Validate portal context permission
@@ -274,7 +284,7 @@ export const loginUser = async (req, res, next) => {
           updated_at: user.updated_at
         },
         available_roles: userRoles,
-        requires_role_selection: isDesignatedAdmin && !portal_context
+        requires_role_selection: userRoles.length > 1 && !portal_context
       }
     });
   } catch (err) {
@@ -506,10 +516,10 @@ export const googleAuth = async (req, res, next) => {
         phone_number: null,
         dob: '2000-01-01',
         avatar_url: avatar_url || null,
-        role: (userEmail === 'abhisingh940927@gmail.com') ? 'super_admin' : 'citizen',
-        roles: (userEmail === 'abhisingh940927@gmail.com') ? ['super_admin', 'department_admin', 'citizen'] : ['citizen'],
+        role: 'citizen',
+        roles: ['citizen'],
         department_id: null,
-        designation: (userEmail === 'abhisingh940927@gmail.com') ? 'System Super Administrator' : 'Citizen / Google Verified',
+        designation: 'Citizen / Google Verified',
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

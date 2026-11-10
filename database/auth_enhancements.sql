@@ -4,6 +4,7 @@
 
 -- 1. Add DOB and Multi-Role support to public.profiles if not present
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS dob DATE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_path TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS roles TEXT[] DEFAULT ARRAY['citizen']::TEXT[];
 
 -- 2. Admin Invitations Table (Controlled Bootstrap & Onboarding)
@@ -22,33 +23,45 @@ CREATE TABLE IF NOT EXISTS public.admin_invitations (
 -- Enable RLS on admin_invitations
 ALTER TABLE public.admin_invitations ENABLE ROW LEVEL SECURITY;
 
--- Only super admins can view/create invitations
-CREATE POLICY "Super admins manage invitations"
-ON public.admin_invitations
-FOR ALL
-USING (
-    EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND (role = 'super_admin' OR 'super_admin' = ANY(roles))
-    )
-);
-
--- 3. Provisioning Designated Multi-Role Administrator (abhisingh940927@gmail.com)
--- Note: When the user signs up with Supabase Auth with this email, this trigger automatically
--- grants both 'super_admin' and 'department_admin' roles securely.
-CREATE OR REPLACE FUNCTION public.handle_admin_provisioning()
-RETURNS TRIGGER AS $$
+-- 3. Controlled Onboarding via Invitation Redemption
+CREATE OR REPLACE FUNCTION public.redeem_admin_invitation(p_invitation_code TEXT)
+RETURNS JSONB AS $$
+DECLARE
+    v_inv RECORD;
+    v_user_id UUID;
+    v_email TEXT;
 BEGIN
-    IF NEW.email = 'abhisingh940927@gmail.com' THEN
-        NEW.role := 'super_admin';
-        NEW.roles := ARRAY['super_admin', 'department_admin']::TEXT[];
-        NEW.designation := 'Principal System Administrator & Nodal Director';
+    v_user_id := auth.uid();
+    IF v_user_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Authentication required');
     END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
+    SELECT email INTO v_email FROM public.profiles WHERE id = v_user_id;
+
+    SELECT * INTO v_inv FROM public.admin_invitations
+    WHERE invitation_code = p_invitation_code 
+      AND email = v_email
+      AND is_used = false 
+      AND expires_at > now();
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Invalid, expired, or unauthorized invitation code');
+    END IF;
+
+    -- Assign role in user_roles table
+    INSERT INTO public.user_roles (user_id, role, department_id, assigned_by)
+    VALUES (v_user_id, v_inv.role, v_inv.department_id, v_inv.invited_by)
+    ON CONFLICT (user_id, role, department_id) DO NOTHING;
+
+    -- Mark invitation as used
+    UPDATE public.admin_invitations
+    SET is_used = true
+    WHERE id = v_inv.id;
+
+    RETURN jsonb_build_object('success', true, 'message', 'Administrative role successfully assigned', 'role', v_inv.role);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Clean up any legacy hardcoded email triggers
 DROP TRIGGER IF EXISTS trg_provision_admin ON public.profiles;
-CREATE TRIGGER trg_provision_admin
-BEFORE INSERT OR UPDATE ON public.profiles
-FOR EACH ROW EXECUTE FUNCTION public.handle_admin_provisioning();
+DROP FUNCTION IF EXISTS public.handle_admin_provisioning();

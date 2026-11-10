@@ -22,10 +22,13 @@ CREATE TYPE complaint_status AS ENUM (
     'assigned',
     'in_progress',
     'under_review',
+    'pending_information',
+    'resolution_submitted',
     'resolved',
     'closed',
     'rejected',
-    'reopened'
+    'reopened',
+    'escalated'
 );
 
 CREATE TYPE complaint_priority AS ENUM (
@@ -75,12 +78,43 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     full_name VARCHAR(150) NOT NULL,
     phone_number VARCHAR(20),
     role user_role NOT NULL DEFAULT 'citizen',
+    roles TEXT[] DEFAULT ARRAY['citizen']::TEXT[],
     department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL,
     designation VARCHAR(100),
+    dob DATE,
     avatar_url TEXT,
+    avatar_path TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- ------------------------------------------------------------------------------
+-- 3b. USER_ROLES TABLE (Multi-Role Relationship & Department Scoping)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_roles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    role user_role NOT NULL,
+    department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL,
+    assigned_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_user_role_dept UNIQUE (user_id, role, department_id)
+);
+
+-- ------------------------------------------------------------------------------
+-- 3c. ADMIN INVITATIONS TABLE (Controlled Role Provisioning)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.admin_invitations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) NOT NULL,
+    invitation_code VARCHAR(100) NOT NULL UNIQUE,
+    role user_role NOT NULL,
+    department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL,
+    invited_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    is_used BOOLEAN NOT NULL DEFAULT false,
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (timezone('utc'::text, now()) + INTERVAL '7 days'),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- ------------------------------------------------------------------------------
