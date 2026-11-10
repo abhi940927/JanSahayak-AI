@@ -89,8 +89,8 @@ export const Login = () => {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
-      <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 sm:py-16">
+      <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-7 sm:p-8 shadow-sm space-y-5 my-auto mb-16 sm:mb-20">
         <div className="text-center space-y-3">
           <div className="flex justify-center mb-1">
             <BrandLogo size="md" showTagline={false} linkTo="/" />

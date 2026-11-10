@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT = 9224;
-const USER_DATA_DIR = '/tmp/chrome-login-test-' + Date.now();
+const PORT = 9226;
+const USER_DATA_DIR = '/tmp/chrome-login-spacing-test-' + Date.now();
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -73,47 +73,52 @@ async function run() {
 
   await sendPage('Page.enable');
   await sendPage('Runtime.enable');
+
+  // Test at 1280x850 (typical laptop display with browser chrome)
   await sendPage('Emulation.setDeviceMetricsOverride', {
     width: 1280,
-    height: 900,
+    height: 850,
     deviceScaleFactor: 1,
     mobile: false
   });
 
-  console.log('Navigating to http://localhost:5173/login at 1280x900 resolution...');
+  console.log('Navigating to http://localhost:5173/login at 1280x850...');
   await sendPage('Page.navigate', { url: 'http://localhost:5173/login' });
   await sleep(2500);
 
-  const auditResult = await sendPage('Runtime.evaluate', {
+  const measurement = await sendPage('Runtime.evaluate', {
     expression: `
       (function() {
-        const svgs = Array.from(document.querySelectorAll('svg linearGradient#brandShieldGrad'));
+        const card = document.querySelector('div.bg-white.rounded-2xl');
         const footer = document.querySelector('footer');
-        const loginCard = document.querySelector('div.bg-white.rounded-2xl');
+        const cardRect = card ? card.getBoundingClientRect() : null;
         const footerRect = footer ? footer.getBoundingClientRect() : null;
-        const windowHeight = window.innerHeight;
+
+        // Gap between bottom of card and top of footer
+        const gap = (footerRect && cardRect) ? (footerRect.top - cardRect.bottom) : null;
+        const isOverlapping = gap !== null && gap < 0;
 
         return {
-          brandLogoCount: svgs.length, // Should have Navbar, Login card, and Footer!
-          hasFooter: Boolean(footer),
-          windowHeight,
+          cardTop: cardRect ? cardRect.top : null,
+          cardBottom: cardRect ? cardRect.bottom : null,
+          cardHeight: cardRect ? cardRect.height : null,
           footerTop: footerRect ? footerRect.top : null,
-          footerBottom: footerRect ? footerRect.bottom : null,
-          isFooterAtOrBelowBottom: footerRect ? (footerRect.bottom >= windowHeight) : false,
-          loginCardCentered: loginCard ? (loginCard.getBoundingClientRect().top > 50) : false
+          gapBetweenCardAndFooter: gap,
+          isOverlapping,
+          hasSufficientBreathingRoom: gap !== null && gap >= 50
         };
       })()
     `,
     returnByValue: true
   });
 
-  console.log('=== LOGIN PAGE & FOOTER AUDIT RESULT ===');
-  console.log(auditResult.result.value);
+  console.log('=== CARD & FOOTER POSITION AUDIT (1280x850) ===');
+  console.log(measurement.result.value);
 
-  // Capture screenshot of viewport
+  // Capture Screenshot
   const screenshotRes = await sendPage('Page.captureScreenshot', { format: 'png' });
   const buffer = Buffer.from(screenshotRes.data, 'base64');
-  const screenshotPath = path.resolve('docs/screenshots/clean_login_footer_verified.png');
+  const screenshotPath = path.resolve('docs/screenshots/login_footer_pushed_down.png');
   fs.writeFileSync(screenshotPath, buffer);
   console.log(`Saved screenshot to ${screenshotPath} (${buffer.length} bytes)`);
 
