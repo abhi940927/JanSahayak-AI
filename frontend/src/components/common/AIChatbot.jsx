@@ -40,6 +40,30 @@ const LOCAL_CIVIC_KNOWLEDGE = [
   { dept: 'FCS', name: 'Food, Civil Supplies & Consumer Affairs', cat: 'Ration Dealer Black Marketing & Grain Diversion', priority: 'high', keys: ['ration', 'quota', 'dealer', 'राशन', 'कोटा', 'अनाज'] }
 ];
 
+// Helper to format AI chat messages, rendering markdown bold **text** cleanly without raw asterisks
+const formatChatMessage = (text) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, lineIdx) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return (
+      <span key={lineIdx} className="block min-h-[1.25em]">
+        {parts.map((part, partIdx) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            const boldText = part.slice(2, -2);
+            return (
+              <strong key={partIdx} className="font-bold text-white tracking-wide">
+                {boldText}
+              </strong>
+            );
+          }
+          return part;
+        })}
+      </span>
+    );
+  });
+};
+
 export const AIChatbot = () => {
   const { user, switchDemoRole } = useAuth();
   const navigate = useNavigate();
@@ -257,11 +281,12 @@ export const AIChatbot = () => {
       if (!aiResponseData || !aiResponseData.grievance_draft) {
         const isHindi = /[\u0900-\u097F]/.test(query) || ['kuda', 'sadak', 'pani', 'bijli', 'chori', 'gaddha'].some(w => query.toLowerCase().includes(w));
         let match = LOCAL_CIVIC_KNOWLEDGE.find(k => k.keys.some(kw => query.toLowerCase().includes(kw))) || LOCAL_CIVIC_KNOWLEDGE[0];
+        const displayMatchName = match.name.includes(`(${match.dept})`) ? match.name : `${match.name} (${match.dept})`;
 
         aiResponseData = {
           reply: isHindi
-            ? `मैंने आपकी नागरिक समस्या को **${match.name}** के लिए चिन्हित कर लिया है। 🏛️\n\n• **लक्षित विभाग:** ${match.name} (${match.dept})\n• **शिकायत श्रेणी:** ${match.cat}\n• **प्राथमिकता:** ${match.priority.toUpperCase()}\n\n📍 **आवश्यक अगला कदम:** कृपया नीचे कार्ड में अपना **स्थान / GPS लोकेशन** दर्ज करें और यदि संभव हो तो **फोटो** जोड़ें।\nइसके बाद 'शिकायत दर्ज करें' पर क्लिक करते ही आपका **यूनिक ट्रैकिंग ID** तुरंत जारी हो जाएगा!`
-            : `I have identified your civic issue for **${match.name}**. 🏛️\n\n• **Target Department:** ${match.name} (${match.dept})\n• **Category:** ${match.cat}\n• **Priority:** ${match.priority.toUpperCase()}\n\n📍 **Required Next Steps:** Please confirm your **Incident Location / GPS**, attach an optional **Photo / Evidence**, and click submit below to instantly generate your **Unique Tracking ID**!`,
+            ? `मैंने आपकी नागरिक समस्या को **${match.name}** के लिए चिन्हित कर लिया है। 🏛️\n\n• **लक्षित विभाग:** ${displayMatchName}\n• **शिकायत श्रेणी:** ${match.cat}\n• **प्राथमिकता:** ${match.priority.toUpperCase()}\n\n📍 **आवश्यक अगला कदम:** कृपया नीचे कार्ड में अपना **स्थान / GPS लोकेशन** दर्ज करें और यदि संभव हो तो **फोटो** जोड़ें।\nइसके बाद 'शिकायत दर्ज करें' पर क्लिक करते ही आपका **यूनिक ट्रैकिंग ID** तुरंत जारी हो जाएगा!`
+            : `I have identified your civic issue for **${match.name}**. 🏛️\n\n• **Target Department:** ${displayMatchName}\n• **Category:** ${match.cat}\n• **Priority:** ${match.priority.toUpperCase()}\n\n📍 **Required Next Steps:** Please confirm your **Incident Location / GPS**, attach an optional **Photo / Evidence**, and click submit below to instantly generate your **Unique Tracking ID**!`,
           detected_language: isHindi ? 'hi' : 'en',
           grievance_draft: {
             title: query.slice(0, 60),
@@ -464,7 +489,9 @@ export const AIChatbot = () => {
                       : 'bg-slate-800/90 text-slate-200 border border-slate-700/70 rounded-bl-none'
                   }`}
                 >
-                  <p className="whitespace-pre-line leading-relaxed text-xs sm:text-sm">{msg.text}</p>
+                  <div className="leading-relaxed text-xs sm:text-sm space-y-1">
+                    {formatChatMessage(msg.text)}
+                  </div>
                 </div>
                 <span className="text-[10px] text-slate-500 mt-1 px-1">{msg.timestamp}</span>
 
@@ -489,7 +516,7 @@ export const AIChatbot = () => {
 
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-slate-200">
-                        <span className="text-slate-400">Department:</span> {msg.grievance.department_name} ({msg.grievance.department_code})
+                        <span className="text-slate-400">Department:</span> {msg.grievance.department_name.includes(`(${msg.grievance.department_code})`) ? msg.grievance.department_name : `${msg.grievance.department_name} (${msg.grievance.department_code})`}
                       </p>
                       <p className="text-xs font-medium text-slate-200">
                         <span className="text-slate-400">Category:</span> {msg.grievance.category_name}

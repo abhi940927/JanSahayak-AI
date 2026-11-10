@@ -131,6 +131,7 @@ export function processAIChat(message) {
 
   const deptMeta = DEPARTMENT_CATALOG[bestDept] || DEPARTMENT_CATALOG.MCD;
   const title = msg.split(/[.\n।]/)[0].trim().slice(0, 80) || `${deptMeta.category} - ${deptMeta.name}`;
+  const displayDept = deptMeta.name.includes(`(${bestDept})`) ? deptMeta.name : `${deptMeta.name} (${bestDept})`;
 
   const grievance_draft = {
     title: title.length >= 10 ? title : `${deptMeta.category} Issue`,
@@ -145,8 +146,8 @@ export function processAIChat(message) {
   };
 
   const reply = isHindi
-    ? `मैंने आपकी समस्या को **${deptMeta.name}** के लिए चिन्हित कर लिया है। 🏛️\n\n• **लक्षित विभाग:** ${deptMeta.name} (${bestDept})\n• **शिकायत श्रेणी:** ${deptMeta.category}\n• **प्राथमिकता:** ${deptMeta.priority.toUpperCase()}\n\n📍 **आवश्यक अगला कदम:** कृपया नीचे कार्ड में अपना **घटना स्थल / GPS लोकेशन** दर्ज करें और यदि संभव हो तो **फोटो** जोड़ें।\nइसके बाद 'शिकायत दर्ज करें' पर क्लिक करते ही आपका **यूनिक ट्रैकिंग ID** तुरंत जारी हो जाएगा!`
-    : `I have identified your civic issue for **${deptMeta.name}**. 🏛️\n\n• **Target Department:** ${deptMeta.name} (${bestDept})\n• **Category:** ${deptMeta.category}\n• **Assessed Priority:** ${deptMeta.priority.toUpperCase()}\n\n📍 **Required Next Steps:** Please confirm your **Incident Location / GPS**, attach a site **Photo** if available, and submit below to instantly generate your **Unique Tracking ID**!`;
+    ? `मैंने आपकी समस्या को **${deptMeta.name}** के लिए चिन्हित कर लिया है। 🏛️\n\n• **लक्षित विभाग:** ${displayDept}\n• **शिकायत श्रेणी:** ${deptMeta.category}\n• **प्राथमिकता:** ${deptMeta.priority.toUpperCase()}\n\n📍 **आवश्यक अगला कदम:** कृपया नीचे कार्ड में अपना **घटना स्थल / GPS लोकेशन** दर्ज करें और यदि संभव हो तो **फोटो** जोड़ें।\nइसके बाद 'शिकायत दर्ज करें' पर क्लिक करते ही आपका **यूनिक ट्रैकिंग ID** तुरंत जारी हो जाएगा!`
+    : `I have identified your civic issue for **${deptMeta.name}**. 🏛️\n\n• **Target Department:** ${displayDept}\n• **Category:** ${deptMeta.category}\n• **Assessed Priority:** ${deptMeta.priority.toUpperCase()}\n\n📍 **Required Next Steps:** Please confirm your **Incident Location / GPS**, attach a site **Photo** if available, and submit below to instantly generate your **Unique Tracking ID**!`;
 
   return {
     reply,
