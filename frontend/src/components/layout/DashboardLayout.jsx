@@ -106,24 +106,10 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
 
           {/* Right Header items */}
           <div className="flex items-center space-x-4">
-            {/* Quick evaluator role changer */}
-            <div className="hidden sm:flex items-center space-x-2 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
-              <span className="text-xs font-semibold text-slate-600">Active Role:</span>
-              <select
-                value={role}
-                onChange={(e) => {
-                  switchDemoRole(e.target.value);
-                  if (e.target.value === 'officer') navigate('/officer/dashboard');
-                  else if (e.target.value === 'citizen') navigate('/citizen/dashboard');
-                  else navigate('/admin/dashboard');
-                }}
-                className="bg-transparent text-xs font-bold text-gov-navy-900 focus:outline-none cursor-pointer"
-              >
-                <option value="citizen">👤 Citizen</option>
-                <option value="officer">👮 Field Officer (PWD)</option>
-                <option value="department_admin">🏛️ Dept Admin (MCD)</option>
-                <option value="super_admin">⚡ Super Admin</option>
-              </select>
+            {/* Verified Active Role Indicator */}
+            <div className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-gov-teal-50 text-gov-teal-800 border border-gov-teal-200 capitalize shadow-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-gov-teal-600" />
+              <span>{role.replace('_', ' ')}</span>
             </div>
 
             {/* Notification Bell */}
@@ -305,25 +291,13 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
                 </button>
               </div>
 
-              {/* Mobile active role selector */}
-              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Switch Role:</span>
-                <select
-                  value={role}
-                  onChange={(e) => {
-                    switchDemoRole(e.target.value);
-                    setMobileSidebarOpen(false);
-                    if (e.target.value === 'officer') navigate('/officer/dashboard');
-                    else if (e.target.value === 'citizen') navigate('/citizen/dashboard');
-                    else navigate('/admin/dashboard');
-                  }}
-                  className="w-full bg-white text-xs font-semibold text-gov-navy-900 border border-slate-300 rounded p-1.5"
-                >
-                  <option value="citizen">👤 Citizen</option>
-                  <option value="officer">👮 Field Officer (PWD)</option>
-                  <option value="department_admin">🏛️ Dept Admin (MCD)</option>
-                  <option value="super_admin">⚡ Super Admin</option>
-                </select>
+              {/* Mobile active role indicator */}
+              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 uppercase">Assigned Role:</span>
+                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-bold bg-gov-teal-50 text-gov-teal-800 border border-gov-teal-200 capitalize">
+                  <ShieldCheck className="w-3 h-3 text-gov-teal-600" />
+                  <span>{role.replace('_', ' ')}</span>
+                </span>
               </div>
 
               {/* Links */}

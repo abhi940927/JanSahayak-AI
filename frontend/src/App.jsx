@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import { Navbar } from './components/layout/Navbar';
@@ -34,6 +34,11 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
     );
   }
 
+  // Redirect unauthenticated visitors to login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   // If role is permitted, allow
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     // Redirect to default dashboard
@@ -46,9 +51,17 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
 };
 
 function AppContent() {
+  const location = useLocation();
+  const isDashboardRoute =
+    location.pathname.startsWith('/citizen') ||
+    location.pathname.startsWith('/officer') ||
+    location.pathname.startsWith('/admin') ||
+    location.pathname === '/profile' ||
+    location.pathname.startsWith('/complaints');
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      <Navbar />
+      {!isDashboardRoute && <Navbar />}
       <div className="flex-1">
         <Routes>
           {/* Public Routes */}
@@ -116,7 +129,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-      <Footer />
+      {!isDashboardRoute && <Footer />}
     </div>
   );
 }

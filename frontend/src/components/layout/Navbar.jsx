@@ -23,11 +23,11 @@ export const Navbar = () => {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   // Determine if Demo Role selector should be displayed:
-  // Visible in dev environment, or when ?demo=true in URL, or when toggled in localStorage
+  // Only visible when explicitly requested via ?demo=true in URL or toggled in developer settings
   const [showDemoRole, setShowDemoRole] = useState(
-    import.meta.env.DEV ||
     localStorage.getItem('jansahayak_show_demo') === 'true' ||
-    location.search.includes('demo=true')
+    location.search.includes('demo=true') ||
+    location.search.includes('eval=true')
   );
 
   useEffect(() => {
