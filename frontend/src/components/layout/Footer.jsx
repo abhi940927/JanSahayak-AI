@@ -1,135 +1,268 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, Globe, Mail, Phone, ExternalLink, ShieldCheck } from 'lucide-react';
+import {
+  ShieldAlert,
+  Globe,
+  Mail,
+  Phone,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  ExternalLink
+} from 'lucide-react';
 
 export const Footer = () => {
   return (
-    <footer className="bg-gov-navy-950 text-slate-300 border-t border-gov-navy-800" role="contentinfo">
-      {/* Official Top Band */}
-      <div className="border-b border-gov-navy-900 bg-gov-navy-900/60 py-3 px-4 sm:px-8 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+    <footer className="bg-[#0B1730] text-slate-200 border-t border-[#1E293B] mt-auto" role="contentinfo">
+      {/* Top National Trust Banner */}
+      <div className="border-b border-[#1E293B] bg-[#071022] py-3 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3 text-xs">
           <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-gov-teal-400"></span>
-            <span className="font-medium text-slate-300">National Smart Public Grievance Redressal Architecture</span>
+            <span className="w-2 h-2 rounded-full bg-[#0F9488] shrink-0 animate-pulse"></span>
+            <span className="font-semibold text-slate-200 tracking-wide">
+              Official Public Grievance Redressal Architecture • Smart Governance Initiative
+            </span>
           </div>
-          <div className="flex items-center space-x-4 text-[11px] text-slate-400">
-            <span>RTI Act Aligned</span>
-            <span>•</span>
-            <span>256-bit SSL Encrypted</span>
-            <span>•</span>
-            <span>WCAG 2.1 AA Compliant</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-300">
+            <span className="flex items-center space-x-1">
+              <CheckCircle2 className="w-3 h-3 text-[#0F9488]" />
+              <span>RTI Aligned</span>
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center space-x-1">
+              <ShieldCheck className="w-3 h-3 text-[#0F9488]" />
+              <span>256-bit Secure</span>
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center space-x-1">
+              <Globe className="w-3 h-3 text-[#0F9488]" />
+              <span>WCAG 2.1 AA Compliant</span>
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* Brand & Mission */}
+      {/* Main 4-Column Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-12">
+          {/* COLUMN 1 – BRAND & MISSION */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gov-navy-800 to-gov-navy-900 border border-slate-700 flex items-center justify-center text-gov-teal-400 shadow-sm">
+            <Link to="/" className="inline-flex items-center space-x-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F9488] rounded-lg">
+              <div className="w-10 h-10 rounded-xl bg-[#0F9488]/15 border border-[#0F9488]/40 flex items-center justify-center text-[#2DD4BF] shadow-sm group-hover:scale-105 transition-transform">
                 <ShieldAlert className="w-5 h-5" />
               </div>
-              <div>
-                <span className="text-xl font-black text-white tracking-tight">JanSahayak</span>
-                <span className="ml-1 text-xs font-extrabold text-gov-teal-400 bg-gov-teal-950 px-1.5 py-0.5 rounded border border-gov-teal-800">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xl font-extrabold text-white tracking-tight">JanSahayak</span>
+                <span className="text-xs font-bold text-[#2DD4BF] bg-[#0F9488]/20 px-2 py-0.5 rounded-full border border-[#0F9488]/50">
                   AI
                 </span>
               </div>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Empowering citizens with intelligent, transparent public grievance management across government agencies with verified photographic resolution and SLA accountability.
+            </Link>
+
+            <p className="text-sm text-slate-300 leading-relaxed font-normal">
+              Making public grievance redressal simpler, smarter, and more transparent through technology.
             </p>
-            <div className="pt-2 text-[11px] text-slate-400">
+
+            <p className="text-xs text-slate-400 leading-relaxed pt-1 border-t border-[#1E293B]">
+              Built to empower citizens with time-bound public service delivery, automated department accountability, and verified photographic resolution.
+            </p>
+
+            <div className="text-[11px] font-medium text-slate-400">
               Department of Administrative Reforms & Public Grievances (DARPG Aligned Framework)
             </div>
           </div>
 
-          {/* Quick Platform Links */}
+          {/* COLUMN 2 – QUICK LINKS */}
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-200 mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 pb-1 border-b border-[#1E293B]/70 inline-block">
+              Quick Links
+            </h3>
+            <ul className="space-y-2.5 text-sm">
+              <li>
+                <Link
+                  to="/"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/how-it-works"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/departments"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Departments
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/track"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Track Grievance
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* COLUMN 3 – CITIZEN SERVICES */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 pb-1 border-b border-[#1E293B]/70 inline-block">
               Citizen Services
             </h3>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2.5 text-sm">
               <li>
-                <Link to="/citizen/file-complaint" className="text-slate-400 hover:text-gov-teal-400 transition-colors">
-                  File a New Public Grievance
+                <Link
+                  to="/citizen/file-complaint"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  File a Grievance
                 </Link>
               </li>
               <li>
-                <Link to="/track" className="text-slate-400 hover:text-gov-teal-400 transition-colors">
-                  Track Grievance Status
+                <Link
+                  to="/track"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Track Complaint
                 </Link>
               </li>
               <li>
-                <Link to="/departments" className="text-slate-400 hover:text-gov-teal-400 transition-colors">
-                  Browse Integrated Departments
+                <Link
+                  to="/how-it-works"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Frequently Asked Questions
                 </Link>
               </li>
               <li>
-                <Link to="/how-it-works" className="text-slate-400 hover:text-gov-teal-400 transition-colors">
-                  How AI Redressal Works
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Help and Support
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-slate-400 hover:text-gov-teal-400 transition-colors">
-                  About Smart Governance Initiative
+                <Link
+                  to="/how-it-works"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Citizen Guidelines
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* 8 Civic Utilities */}
+          {/* COLUMN 4 – CONTACT AND INFORMATION */}
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-200 mb-4">
-              Civic Utilities Covered
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 pb-1 border-b border-[#1E293B]/70 inline-block">
+              Contact and Information
             </h3>
-            <ul className="space-y-1.5 text-xs text-slate-400">
-              <li>• Water Supply & Sewerage (DJB)</li>
-              <li>• Electricity & Power Grids (EPD)</li>
-              <li>• Roads, Flyovers & PWD (PWD)</li>
-              <li>• Municipal Sanitation & Sweeping (MCD)</li>
-              <li>• Solid Waste Management (SWM)</li>
-              <li>• Public Health & Clinics (HFW)</li>
-              <li>• Drainage & Flood Control (DFC)</li>
-              <li>• Street Lighting Corridors (SLC)</li>
+            <ul className="space-y-2.5 text-sm mb-5">
+              <li>
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Terms and Conditions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Accessibility Statement
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/about"
+                  className="text-slate-300 hover:text-[#2DD4BF] hover:translate-x-0.5 transition-all inline-block focus:outline-none focus-visible:underline"
+                >
+                  Support Information
+                </Link>
+              </li>
             </ul>
-          </div>
 
-          {/* Official Helplines */}
-          <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-200 mb-4">
-              Emergency & Support
-            </h3>
-            <div className="space-y-3 text-xs text-slate-300">
-              <div className="flex items-center space-x-2.5">
-                <Phone className="w-4 h-4 text-gov-teal-400 shrink-0" />
-                <span>National Citizen Helpline: <strong className="text-white">1800-11-2026</strong> (Toll-Free)</span>
+            {/* Official Support Channels (Verified Info) */}
+            <div className="p-3.5 bg-[#071022] rounded-xl border border-[#1E293B] space-y-2 text-xs">
+              <div className="flex items-center space-x-2 text-slate-300">
+                <Phone className="w-3.5 h-3.5 text-[#0F9488] shrink-0" />
+                <span>Helpline: <strong className="text-white font-semibold">1800-11-2026</strong></span>
               </div>
-              <div className="flex items-center space-x-2.5">
-                <Mail className="w-4 h-4 text-gov-teal-400 shrink-0" />
-                <span>support@jansahayak.gov.in</span>
+              <div className="flex items-center space-x-2 text-slate-300">
+                <Mail className="w-3.5 h-3.5 text-[#0F9488] shrink-0" />
+                <span className="truncate">support@jansahayak.gov.in</span>
               </div>
-              <div className="flex items-center space-x-2.5">
-                <Globe className="w-4 h-4 text-gov-teal-400 shrink-0" />
-                <span>24x7 Multi-Lingual Redressal Desk</span>
-              </div>
-              <div className="p-3 bg-gov-navy-900 rounded-xl border border-slate-800 text-[11px] text-slate-400 mt-2">
-                Emergency life safety hazards (snapped wires, gas leaks) trigger automatic 12-hour response dispatch.
+              <div className="flex items-center space-x-2 text-slate-300">
+                <Clock className="w-3.5 h-3.5 text-[#0F9488] shrink-0" />
+                <span>24x7 Digital Resolution SLA</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Legal Bar */}
-        <div className="mt-12 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-400 gap-3">
-          <p>© {new Date().getFullYear()} JanSahayak AI. Official Smart Public Service Management Platform.</p>
-          <div className="flex items-center space-x-4 text-[11px]">
-            <span className="text-slate-400">Terms of Redressal</span>
-            <span>•</span>
-            <span className="text-slate-400">Citizen Privacy Policy</span>
-            <span>•</span>
-            <span className="text-slate-400">RTI Disclosure</span>
+        {/* BOTTOM SECTION WITH SUBTLE DIVIDER */}
+        <div className="mt-12 pt-6 border-t border-[#1E293B] flex flex-col sm:flex-row justify-between items-center text-xs text-slate-400 gap-4">
+          <p className="text-center sm:text-left text-slate-300 font-medium">
+            © 2026 JanSahayak AI. All rights reserved.
+          </p>
+
+          <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-slate-400">
+            <Link
+              to="/about"
+              className="hover:text-[#2DD4BF] transition-colors focus:outline-none focus-visible:underline"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-slate-600">•</span>
+            <Link
+              to="/about"
+              className="hover:text-[#2DD4BF] transition-colors focus:outline-none focus-visible:underline"
+            >
+              Terms of Service
+            </Link>
+            <span className="text-slate-600">•</span>
+            <Link
+              to="/about"
+              className="hover:text-[#2DD4BF] transition-colors focus:outline-none focus-visible:underline"
+            >
+              Accessibility
+            </Link>
           </div>
         </div>
       </div>
