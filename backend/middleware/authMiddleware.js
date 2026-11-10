@@ -100,6 +100,68 @@ export const authenticateUser = async (req, res, next) => {
   }
 };
 
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader === 'Bearer null' || authHeader === 'Bearer undefined' || authHeader === 'Bearer') {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (!token || token === 'null' || token === 'undefined') {
+      req.user = null;
+      return next();
+    }
+
+    if (token.startsWith('mock-token:')) {
+      const parts = token.split(':');
+      const userIdOrEmail = parts[2];
+      req.user = userIdOrEmail ? findUserByIdOrEmail(userIdOrEmail) : null;
+      return next();
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const { data: roleRecords } = await supabase
+            .from('user_roles')
+            .select('role, department_id')
+            .eq('user_id', user.id);
+
+          let userRoles = [];
+          if (roleRecords && roleRecords.length > 0) {
+            userRoles = Array.from(new Set(roleRecords.map(r => r.role)));
+          } else if (profile?.roles) {
+            userRoles = profile.roles;
+          } else {
+            userRoles = [profile?.role || 'citizen'];
+          }
+
+          req.user = profile ? { ...profile, roles: userRoles } : null;
+        } else {
+          req.user = null;
+        }
+      } catch {
+        req.user = null;
+      }
+    } else {
+      req.user = null;
+    }
+    next();
+  } catch {
+    req.user = null;
+    next();
+  }
+};
+
 export const requireRole = (allowedRoles = []) => {
   return (req, res, next) => {
     if (!req.user) {

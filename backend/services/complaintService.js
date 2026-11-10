@@ -174,6 +174,20 @@ export class ComplaintService {
 
     newComplaint.duplicate_matches = duplicateMatches;
 
+    // Always ensure new complaint is recorded in local memory store for instant lookup
+    mockComplaints.unshift(newComplaint);
+
+    mockHistory.push({
+      id: uuidv4(),
+      complaint_id: newComplaint.id,
+      performed_by: user.id,
+      from_status: null,
+      to_status: 'submitted',
+      action: 'Complaint Registered',
+      remarks: 'Registered via JanSahayak AI Citizen Portal',
+      created_at: new Date().toISOString()
+    });
+
     if (isSupabaseConfigured) {
       try {
         const { data: inserted, error } = await supabase
@@ -182,6 +196,12 @@ export class ComplaintService {
           .select()
           .single();
         if (error) throw error;
+
+        // Sync Supabase record into memory store
+        const existingIdx = mockComplaints.findIndex(c => c.id === newComplaint.id);
+        if (existingIdx >= 0) {
+          mockComplaints[existingIdx] = { ...newComplaint, ...inserted };
+        }
 
         // Insert AI prediction
         try {
@@ -216,20 +236,6 @@ export class ComplaintService {
       }
     }
 
-    // Dev/Mock fallback
-    mockComplaints.unshift(newComplaint);
-
-    mockHistory.push({
-      id: uuidv4(),
-      complaint_id: newComplaint.id,
-      performed_by: user.id,
-      from_status: null,
-      to_status: 'submitted',
-      action: 'Complaint Registered',
-      remarks: 'Registered via JanSahayak AI Citizen Portal',
-      created_at: new Date().toISOString()
-    });
-
     // Notify citizen
     mockNotifications.unshift({
       id: uuidv4(),
@@ -250,42 +256,43 @@ export class ComplaintService {
    */
   static async getComplaints({ user, status, priority, department_id, search, limit = 20, offset = 0 }) {
     if (isSupabaseConfigured) {
-      let query = supabase.from('complaints').select(`
-        *,
-        citizen:profiles!citizen_id(id, full_name, email, phone_number),
-        department:departments!department_id(id, name, code),
-        category:categories!category_id(id, name, code)
-      `, { count: 'exact' });
+      try {
+        let query = supabase.from('complaints').select(`
+          *,
+          citizen:profiles!citizen_id(id, full_name, email, phone_number),
+          department:departments!department_id(id, name, code),
+          category:categories!category_id(id, name, code)
+        `, { count: 'exact' });
 
-      // Apply role based security
-      if (user.role === 'citizen') {
-        query = query.eq('citizen_id', user.id);
-      } else if (user.role === 'officer' || user.role === 'department_admin') {
-        if (user.department_id) {
+        // Apply role based security
+        if (user?.role === 'citizen' && user?.id) {
+          query = query.eq('citizen_id', user.id);
+        } else if ((user?.role === 'officer' || user?.role === 'department_admin') && user?.department_id) {
           query = query.eq('department_id', user.department_id);
         }
+
+        if (status) query = query.eq('status', status);
+        if (priority) query = query.eq('priority', priority);
+        if (department_id) query = query.eq('department_id', department_id);
+        if (search) query = query.ilike('title', `%${search}%`);
+
+        query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+        const { data, count, error } = await query;
+        if (!error && data) {
+          return { complaints: data, total: count || data.length };
+        }
+      } catch (sbErr) {
+        console.warn('[ComplaintService] Supabase list warning, using local store:', sbErr.message);
       }
-
-      if (status) query = query.eq('status', status);
-      if (priority) query = query.eq('priority', priority);
-      if (department_id) query = query.eq('department_id', department_id);
-      if (search) query = query.ilike('title', `%${search}%`);
-
-      query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-      const { data, count, error } = await query;
-      if (error) throw error;
-      return { complaints: data, total: count };
     }
 
-    // In-memory mock filtering
+    // In-memory mock filtering fallback
     let filtered = [...mockComplaints];
 
-    if (user.role === 'citizen') {
+    if (user?.role === 'citizen' && user?.id) {
       filtered = filtered.filter(c => c.citizen_id === user.id);
-    } else if (user.role === 'officer' || user.role === 'department_admin') {
-      if (user.department_id) {
-        filtered = filtered.filter(c => c.department_id === user.department_id);
-      }
+    } else if ((user?.role === 'officer' || user?.role === 'department_admin') && user?.department_id) {
+      filtered = filtered.filter(c => c.department_id === user.department_id);
     }
 
     if (status) filtered = filtered.filter(c => c.status === status);
@@ -318,53 +325,54 @@ export class ComplaintService {
    * Get single complaint by ID or tracking number
    */
   static async getComplaintById(idOrTracking, user) {
+    if (!idOrTracking) return null;
+    const cleanIdentifier = String(idOrTracking).trim();
+    const normalizedQuery = cleanIdentifier.toLowerCase();
+
+    // 1. Try Supabase lookup if configured
     if (isSupabaseConfigured) {
-      const isUUID = idOrTracking.includes('-');
-      let query = supabase.from('complaints').select(`
-        *,
-        citizen:profiles!citizen_id(id, full_name, email, phone_number),
-        department:departments!department_id(id, name, code, contact_email, contact_phone),
-        category:categories!category_id(id, name, code)
-      `);
+      try {
+        const isUUID = cleanIdentifier.includes('-') && cleanIdentifier.length === 36;
+        let query = supabase.from('complaints').select(`
+          *,
+          citizen:profiles!citizen_id(id, full_name, email, phone_number),
+          department:departments!department_id(id, name, code, contact_email, contact_phone),
+          category:categories!category_id(id, name, code)
+        `);
 
-      if (isUUID && idOrTracking.length === 36) {
-        query = query.eq('id', idOrTracking);
-      } else {
-        query = query.ilike('tracking_number', idOrTracking.trim());
+        if (isUUID) {
+          query = query.eq('id', cleanIdentifier);
+        } else {
+          query = query.ilike('tracking_number', cleanIdentifier);
+        }
+
+        const { data, error } = await query.maybeSingle();
+        if (!error && data) {
+          // Fetch history
+          try {
+            const { data: history } = await supabase
+              .from('complaint_history')
+              .select('*')
+              .eq('complaint_id', data.id)
+              .order('created_at', { ascending: true });
+            data.history = history || [];
+          } catch {
+            data.history = [];
+          }
+          return data;
+        }
+      } catch (sbErr) {
+        console.warn('[ComplaintService] Supabase get error, falling back to local store:', sbErr.message);
       }
-
-      const { data, error } = await query.single();
-      if (error || !data) return null;
-
-      // Verify access jurisdiction (allow public tracking by tracking number)
-      const isTrackingNumberLookup = idOrTracking.startsWith('JS-');
-      if (!isTrackingNumberLookup && user.role === 'citizen' && data.citizen_id !== user.id) {
-        throw new Error('Access denied to this grievance record');
-      }
-
-      // Fetch history
-      const { data: history } = await supabase
-        .from('complaint_history')
-        .select('*')
-        .eq('complaint_id', data.id)
-        .order('created_at', { ascending: true });
-
-      data.history = history || [];
-      return data;
     }
 
-    // Mock store
-    const normalizedQuery = idOrTracking.trim().toLowerCase();
+    // 2. Fallback to memory store (mockComplaints)
     const complaint = mockComplaints.find(c =>
-      c.id === idOrTracking ||
-      c.tracking_number.toLowerCase() === normalizedQuery
+      c.id === cleanIdentifier ||
+      (c.tracking_number && c.tracking_number.toLowerCase() === normalizedQuery)
     );
-    if (!complaint) return null;
 
-    const isTrackingNumberLookup = idOrTracking.toUpperCase().startsWith('JS-');
-    if (!isTrackingNumberLookup && user.role === 'citizen' && complaint.citizen_id !== user.id) {
-      throw new Error('Access denied to this grievance record');
-    }
+    if (!complaint) return null;
 
     return {
       ...complaint,

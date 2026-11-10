@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Bot,
   MessageSquare,
@@ -352,61 +352,69 @@ export const AIChatbot = () => {
 
     setFilingStatus(prev => ({ ...prev, [messageId]: 'filing' }));
 
-    // Generate guaranteed Unique Tracking ID (e.g. JS-2026-84910)
-    const fallbackTrackingNumber = `JS-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
-    let finalTrackingNumber = fallbackTrackingNumber;
-    let finalId = `complaint-${Date.now()}`;
-    let finalPriority = grievanceDraft.priority || 'high';
-    let slaDueAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    const isUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
     const matchedDept = departments.find(
       d => d.code === grievanceDraft.department_code || d.name.toLowerCase().includes((grievanceDraft.department_name || '').toLowerCase())
-    ) || departments[0] || { name: grievanceDraft.department_name, id: 'dept-default' };
+    ) || departments[0];
 
     const matchedCat = categories.find(
       c => (matchedDept ? c.department_id === matchedDept.id : true) &&
            (c.name.toLowerCase().includes((grievanceDraft.category_name || '').toLowerCase()) || c.code === grievanceDraft.category_code)
-    ) || categories[0] || { name: grievanceDraft.category_name, id: 'cat-default' };
+    ) || categories[0];
+
+    const validDeptId = matchedDept && isUUID(matchedDept.id) ? matchedDept.id : null;
+    const validCatId = matchedCat && isUUID(matchedCat.id) ? matchedCat.id : null;
+
+    // Minimum length validations matching backend schema
+    const safeTitle = (grievanceDraft.title || 'Civic Grievance via JanSahayak AI Chat').trim();
+    const finalTitle = safeTitle.length >= 5 ? safeTitle : `${safeTitle} Issue`;
+
+    const safeDesc = (grievanceDraft.description || 'Civic grievance registered through JanSahayak Real-Time AI Chat Assistant.').trim();
+    const finalDesc = safeDesc.length >= 10 ? safeDesc : `${safeDesc} - Field inspection requested.`;
+
+    const safeAddress = (cardLocation.address || 'Reported via GPS Geolocation, New Delhi').trim();
+    const finalAddress = safeAddress.length >= 5 ? safeAddress : `${safeAddress}, Delhi`;
 
     try {
       const payload = {
-        title: grievanceDraft.title || 'Civic Grievance via JanSahayak AI Chat',
-        description: grievanceDraft.description || 'Grievance submitted directly through JanSahayak Real-Time AI Chat Assistant.',
-        department_id: matchedDept?.id || null,
-        category_id: matchedCat?.id || null,
-        address: cardLocation.address || 'Reported via GPS Geolocation',
+        title: finalTitle,
+        description: finalDesc,
+        department_id: validDeptId,
+        category_id: validCatId,
+        address: finalAddress,
         city: cardLocation.city || 'New Delhi',
         state: cardLocation.state || 'Delhi',
-        pincode: cardLocation.pincode || '110001',
-        latitude: cardLocation.latitude,
-        longitude: cardLocation.longitude,
+        pincode: cardLocation.pincode && /^\d{6}$/.test(cardLocation.pincode) ? cardLocation.pincode : '110001',
+        latitude: typeof cardLocation.latitude === 'number' ? cardLocation.latitude : null,
+        longitude: typeof cardLocation.longitude === 'number' ? cardLocation.longitude : null,
         preferred_language: 'en'
       };
 
       const res = await api.post('/complaints', payload);
 
-      if (res?.data?.tracking_number) {
-        finalTrackingNumber = res.data.tracking_number;
-        finalId = res.data.id || finalId;
-        finalPriority = res.data.priority || finalPriority;
-        slaDueAt = res.data.sla_due_at || slaDueAt;
+      if (res && res.success && res.data) {
+        const filedData = res.data;
+        setFilingStatus(prev => ({ ...prev, [messageId]: 'success' }));
+        setFiledResults(prev => ({
+          ...prev,
+          [messageId]: {
+            tracking_number: filedData.tracking_number,
+            id: filedData.id,
+            department: matchedDept?.name || grievanceDraft.department_name || 'Designated Authority',
+            category: matchedCat?.name || grievanceDraft.category_name || 'Public Redressal',
+            priority: filedData.priority || grievanceDraft.priority || 'high',
+            sla_due_at: filedData.sla_due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+          }
+        }));
+        return;
       }
+      throw new Error(res?.message || 'Failed to file complaint');
     } catch (err) {
-      console.warn('[AIChatbot] API submission note, generated local tracking ID:', err.message);
+      console.error('[AIChatbot] Complaint filing error:', err);
+      setFilingStatus(prev => ({ ...prev, [messageId]: 'error' }));
+      alert(err.message || 'Could not register grievance. Please verify your connection or login status.');
     }
-
-    setFilingStatus(prev => ({ ...prev, [messageId]: 'success' }));
-    setFiledResults(prev => ({
-      ...prev,
-      [messageId]: {
-        tracking_number: finalTrackingNumber,
-        id: finalId,
-        department: matchedDept?.name || grievanceDraft.department_name,
-        category: matchedCat?.name || grievanceDraft.category_name,
-        priority: finalPriority,
-        sla_due_at: slaDueAt
-      }
-    }));
   };
 
   const quickPrompts = [
@@ -640,12 +648,12 @@ export const AIChatbot = () => {
 
                         <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
                           <span>Target: {filedResults[msg.id].department}</span>
-                          <a
-                            href={`/track?id=${filedResults[msg.id].tracking_number}`}
+                          <Link
+                            to={`/track?number=${encodeURIComponent(filedResults[msg.id].tracking_number)}`}
                             className="text-emerald-400 hover:underline font-bold flex items-center gap-1"
                           >
                             Track Status Live <ExternalLink className="w-3 h-3" />
-                          </a>
+                          </Link>
                         </div>
                       </div>
                     ) : !user ? (

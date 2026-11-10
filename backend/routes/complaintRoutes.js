@@ -8,7 +8,7 @@ import {
   reverseGeocodeLocation,
   ipLocationLookup
 } from '../controllers/complaintController.js';
-import { authenticateUser, requireRole } from '../middleware/authMiddleware.js';
+import { authenticateUser, requireRole, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -17,11 +17,15 @@ router.get('/geo/reverse', reverseGeocodeLocation);
 router.get('/reverse-geocode', reverseGeocodeLocation);
 router.get('/geo/ip-lookup', ipLocationLookup);
 
+// Public grievance tracking by tracking number or UUID (accessible without login)
+router.get('/track/:id', optionalAuth, getComplaintById);
+router.get('/:id', optionalAuth, getComplaintById);
+
+// Protected routes (require verified login)
 router.use(authenticateUser);
 
 router.post('/', createComplaint);
 router.get('/', getComplaints);
-router.get('/:id', getComplaintById);
 router.patch('/:id/status', requireRole(['officer', 'department_admin', 'super_admin']), updateStatus);
 router.post('/:id/feedback', submitFeedback);
 

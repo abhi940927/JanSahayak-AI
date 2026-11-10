@@ -7,13 +7,16 @@ import { ComplaintTimeline } from '../../components/complaints/ComplaintTimeline
 
 export const TrackComplaint = () => {
   const [searchParams] = useSearchParams();
-  const [trackingNumber, setTrackingNumber] = useState(searchParams.get('number') || '');
+  const getParamNumber = () =>
+    searchParams.get('number') || searchParams.get('id') || searchParams.get('tracking_number') || '';
+
+  const [trackingNumber, setTrackingNumber] = useState(getParamNumber());
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const num = searchParams.get('number');
+    const num = getParamNumber();
     if (num && num.trim()) {
       setTrackingNumber(num.trim());
       executeLookup(num.trim());
