@@ -20,6 +20,7 @@ import { FileComplaint } from './pages/citizen/FileComplaint';
 import { ComplaintDetail } from './pages/citizen/ComplaintDetail';
 import { OfficerDashboard } from './pages/officer/OfficerDashboard';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { ProfilePage } from './pages/common/ProfilePage';
 
 // Role Protected Guard
 const ProtectedRoute = ({ allowedRoles = [], children }) => {
@@ -99,6 +100,17 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+
+          {/* User Profile & Account Settings (Shared across all roles) */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={['citizen', 'officer', 'department_admin', 'super_admin']}>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/citizen/profile" element={<Navigate to="/profile" replace />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -85,12 +85,28 @@ export const FileComplaint = () => {
 
       if (res.data) {
         setAiSuggestion(res.data);
-        // Automatically auto-select department if citizen has not manually picked one
+        // Automatically auto-select department and category if citizen has not manually picked one
         if (!selectedDept && res.data.predicted_department) {
-          const matched = departments.find(d => d.code === res.data.predicted_department);
-          if (matched) {
-            setSelectedDept(matched.id);
-            setFormData(prev => ({ ...prev, department_id: matched.id }));
+          const matchedDept = departments.find(d => d.code === res.data.predicted_department);
+          if (matchedDept) {
+            setSelectedDept(matchedDept.id);
+            let matchedCatId = '';
+            if (res.data.predicted_category) {
+              const normCat = res.data.predicted_category.toLowerCase();
+              const matchedCat = categories.find(c => 
+                c.department_id === matchedDept.id && (
+                  c.name.toLowerCase().includes(normCat) ||
+                  normCat.includes(c.name.toLowerCase()) ||
+                  c.code.toLowerCase().includes(normCat)
+                )
+              );
+              if (matchedCat) matchedCatId = matchedCat.id;
+            }
+            setFormData(prev => ({ 
+              ...prev, 
+              department_id: matchedDept.id,
+              category_id: prev.category_id || matchedCatId
+            }));
           }
         }
       }
@@ -157,6 +173,10 @@ export const FileComplaint = () => {
     }
     if (formData.address.trim().length < 5) {
       setError('Please provide a specific street address or landmark (at least 5 characters)');
+      return;
+    }
+    if (formData.pincode && formData.pincode.trim() && !/^\d{6}$/.test(formData.pincode.trim())) {
+      setError('Pincode must be exactly 6 digits (e.g. 110001, 144111)');
       return;
     }
     if (!formData.consent) {

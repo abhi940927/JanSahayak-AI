@@ -117,40 +117,90 @@ export const mockUsers = [
     email: 'citizen@jansahayak.in',
     full_name: 'Aarav Sharma',
     phone_number: '+91 98765 43210',
+    dob: '1992-05-14',
+    avatar_url: null,
     role: 'citizen',
+    roles: ['citizen'],
     department_id: null,
     designation: 'Citizen / Resident',
-    is_active: true
+    is_active: true,
+    created_at: '2026-01-15T08:30:00.000Z',
+    updated_at: '2026-01-15T08:30:00.000Z'
   },
   {
     id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u02',
     email: 'officer.pwd@jansahayak.gov.in',
-    full_name: 'Rajesh Verma (PWD Officer)',
+    full_name: 'Rajesh Verma',
     phone_number: '+91 98111 22334',
+    dob: '1984-08-22',
+    avatar_url: null,
     role: 'officer',
+    roles: ['officer'],
     department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
-    designation: 'Executive Engineer - Zone 3',
-    is_active: true
+    designation: 'Executive Engineer - Zone 3 (PWD)',
+    is_active: true,
+    created_at: '2026-01-10T10:00:00.000Z',
+    updated_at: '2026-01-10T10:00:00.000Z'
   },
   {
     id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u03',
     email: 'admin.mcd@jansahayak.gov.in',
-    full_name: 'Sunita Devi (Dept Admin)',
+    full_name: 'Sunita Devi',
     phone_number: '+91 98222 33445',
+    dob: '1979-11-03',
+    avatar_url: null,
     role: 'department_admin',
+    roles: ['department_admin'],
     department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    designation: 'Chief Nodal Officer',
-    is_active: true
+    designation: 'Chief Nodal Officer - MCD',
+    is_active: true,
+    created_at: '2026-01-05T09:15:00.000Z',
+    updated_at: '2026-01-05T09:15:00.000Z'
   },
   {
     id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04',
     email: 'superadmin@jansahayak.gov.in',
-    full_name: 'Dr. Vikram Malhotra (Super Admin)',
+    full_name: 'Dr. Vikram Malhotra',
     phone_number: '+91 98333 44556',
+    dob: '1975-03-30',
+    avatar_url: null,
     role: 'super_admin',
+    roles: ['super_admin'],
     department_id: null,
     designation: 'Principal Secretary of Governance',
-    is_active: true
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u99',
+    email: 'abhisingh940927@gmail.com',
+    full_name: 'Abhinav Singh',
+    phone_number: '+91 99999 88888',
+    dob: '1995-09-27',
+    avatar_url: null,
+    role: 'super_admin',
+    roles: ['super_admin', 'department_admin'],
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    designation: 'Principal System Administrator & Nodal Director',
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
+  }
+];
+
+export const mockInvitations = [
+  {
+    code: 'JS-DEPT-ADMIN-2026',
+    role: 'department_admin',
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    is_used: false
+  },
+  {
+    code: 'JS-SUPER-ADMIN-2026',
+    role: 'super_admin',
+    department_id: null,
+    is_used: false
   }
 ];
 
@@ -282,3 +332,37 @@ export const mockNotifications = [
     created_at: new Date(Date.now() - 18 * 3600 * 1000).toISOString()
   }
 ];
+
+// Dynamic In-Memory Store for Registered Users
+export const dynamicUsers = new Map();
+
+// Initialize dynamic users with mock users
+mockUsers.forEach(u => {
+  dynamicUsers.set(u.id, u);
+  dynamicUsers.set(u.email.toLowerCase(), u);
+});
+
+export const findUserByIdOrEmail = (identifier) => {
+  if (!identifier) return null;
+  const lower = String(identifier).toLowerCase().trim();
+  return dynamicUsers.get(identifier) ||
+         dynamicUsers.get(lower) ||
+         mockUsers.find(u => u.id === identifier || u.email.toLowerCase() === lower) ||
+         null;
+};
+
+export const saveDynamicUser = (user) => {
+  const normalized = {
+    ...user,
+    updated_at: new Date().toISOString()
+  };
+  dynamicUsers.set(user.id, normalized);
+  dynamicUsers.set(user.email.toLowerCase().trim(), normalized);
+  const idx = mockUsers.findIndex(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase().trim());
+  if (idx >= 0) {
+    mockUsers[idx] = normalized;
+  } else {
+    mockUsers.push(normalized);
+  }
+  return normalized;
+};

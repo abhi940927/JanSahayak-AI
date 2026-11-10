@@ -5,8 +5,30 @@ import { supabase, isSupabaseConfigured } from '../services/supabase';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(localStorage.getItem('jansahayak_demo_role') || 'citizen');
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('jansahayak_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [role, setRole] = useState(() => {
+    const cachedRole = localStorage.getItem('jansahayak_role');
+    const demoRole = localStorage.getItem('jansahayak_demo_role');
+    return cachedRole || demoRole || 'citizen';
+  });
+
+  const [availableRoles, setAvailableRoles] = useState(() => {
+    try {
+      const cached = localStorage.getItem('jansahayak_available_roles');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [language, setLanguageState] = useState(localStorage.getItem('jansahayak_language') || 'en');
   const [loading, setLoading] = useState(true);
 
@@ -16,12 +38,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    loadUserProfile();
-  }, [role]);
+    initAuthSession();
+  }, []);
 
-  const loadUserProfile = async () => {
+  const initAuthSession = async () => {
     try {
       setLoading(true);
+
+      // If Supabase is configured, check for active session
       if (isSupabaseConfigured && supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
@@ -29,87 +53,197 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      const res = await api.get('/profile');
-      if (res.success && res.data) {
-        setUser(res.data);
-        setRole(res.data.role);
+      const token = localStorage.getItem('jansahayak_token');
+      if (token) {
+        const res = await api.get('/profile');
+        if (res.success && res.data) {
+          setUser(res.data);
+          setRole(res.data.role);
+          setAvailableRoles(res.data.roles || [res.data.role]);
+          localStorage.setItem('jansahayak_user', JSON.stringify(res.data));
+          localStorage.setItem('jansahayak_role', res.data.role);
+        }
+      } else {
+        // If in evaluation demo mode without explicit user token
+        const demoRole = localStorage.getItem('jansahayak_demo_role');
+        if (demoRole) {
+          const res = await api.get('/profile');
+          if (res.success && res.data) {
+            setUser(res.data);
+            setRole(res.data.role);
+            setAvailableRoles(res.data.roles || [res.data.role]);
+          }
+        }
       }
     } catch (err) {
-      console.warn('[AuthContext] Profile load notice:', err.message);
-      // Fallback default state for demo
-      setUser({
-        id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u01',
-        email: 'citizen@jansahayak.in',
-        full_name: 'Aarav Sharma',
-        role: role,
-        designation: 'Citizen / Resident'
-      });
+      console.warn('[AuthContext] Session init warning:', err.message);
+      // Clean invalid token if expired
+      if (err.message.includes('401') || err.message.includes('expired')) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email, password) => {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      localStorage.setItem('jansahayak_token', data.session.access_token);
-      await loadUserProfile();
-      return data;
+  const login = async (email, password, portalContext) => {
+    try {
+      setLoading(true);
+
+      // 1. If Supabase configured, authenticate with Supabase Auth
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          localStorage.setItem('jansahayak_token', data.session.access_token);
+        }
+      }
+
+      // 2. Authenticate through backend API endpoint
+      const res = await api.post('/auth/login', {
+        email,
+        password,
+        portal_context: portalContext
+      });
+
+      if (!res.success) {
+        throw new Error(res.message || 'Login failed');
+      }
+
+      const authData = res.data;
+      if (authData.token) {
+        localStorage.setItem('jansahayak_token', authData.token);
+      }
+      if (authData.user) {
+        setUser(authData.user);
+        setRole(authData.user.role);
+        setAvailableRoles(authData.available_roles || [authData.user.role]);
+        localStorage.setItem('jansahayak_user', JSON.stringify(authData.user));
+        localStorage.setItem('jansahayak_role', authData.user.role);
+        localStorage.setItem('jansahayak_available_roles', JSON.stringify(authData.available_roles || [authData.user.role]));
+      }
+
+      return authData;
+    } finally {
+      setLoading(false);
     }
-
-    // Demo authentication
-    let assignedRole = 'citizen';
-    if (email.includes('officer')) assignedRole = 'officer';
-    if (email.includes('dept') || email.includes('mcd')) assignedRole = 'department_admin';
-    if (email.includes('admin') || email.includes('super')) assignedRole = 'super_admin';
-
-    setRole(assignedRole);
-    localStorage.setItem('jansahayak_demo_role', assignedRole);
-    await loadUserProfile();
-    return { user: { email, role: assignedRole } };
   };
 
   const register = async (userData) => {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            full_name: userData.full_name,
-            phone_number: userData.phone_number
-          }
-        }
-      });
-      if (error) throw error;
-      return data;
+    try {
+      setLoading(true);
+      const res = await api.post('/auth/register', userData);
+      if (!res.success) {
+        throw new Error(res.message || 'Registration failed');
+      }
+
+      const regData = res.data;
+      if (regData.token) {
+        localStorage.setItem('jansahayak_token', regData.token);
+      }
+      if (regData.user) {
+        setUser(regData.user);
+        setRole(regData.user.role || 'citizen');
+        setAvailableRoles(regData.user.roles || ['citizen']);
+        localStorage.setItem('jansahayak_user', JSON.stringify(regData.user));
+        localStorage.setItem('jansahayak_role', regData.user.role || 'citizen');
+      }
+
+      return regData;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (profileData) => {
+    const res = await api.patch('/profile', profileData);
+    if (!res.success) {
+      throw new Error(res.message || 'Profile update failed');
     }
 
-    // Demo register
-    setRole('citizen');
-    localStorage.setItem('jansahayak_demo_role', 'citizen');
-    await loadUserProfile();
-    return { success: true };
+    const updated = res.data;
+    setUser(updated);
+    localStorage.setItem('jansahayak_user', JSON.stringify(updated));
+    return updated;
+  };
+
+  const changePassword = async ({ current_password, new_password, confirm_password }) => {
+    const res = await api.post('/profile/change-password', {
+      current_password,
+      new_password,
+      confirm_password
+    });
+    if (!res.success) {
+      throw new Error(res.message || 'Password update failed');
+    }
+    return res;
+  };
+
+  const switchRole = async (targetRole) => {
+    const res = await api.post('/auth/switch-role', { target_role: targetRole });
+    if (!res.success) {
+      throw new Error(res.message || 'Role switch failed');
+    }
+
+    const updatedUser = res.data.user;
+    setUser(updatedUser);
+    setRole(targetRole);
+    localStorage.setItem('jansahayak_user', JSON.stringify(updatedUser));
+    localStorage.setItem('jansahayak_role', targetRole);
+    return updatedUser;
   };
 
   const logout = async () => {
     if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn('Signout notice:', e);
+      }
     }
     localStorage.removeItem('jansahayak_token');
+    localStorage.removeItem('jansahayak_user');
+    localStorage.removeItem('jansahayak_role');
     localStorage.removeItem('jansahayak_demo_role');
+    localStorage.removeItem('jansahayak_available_roles');
     setUser(null);
     setRole('citizen');
+    setAvailableRoles([]);
   };
 
-  const switchDemoRole = (newRole) => {
+  const switchDemoRole = async (newRole) => {
     setRole(newRole);
     localStorage.setItem('jansahayak_demo_role', newRole);
+    localStorage.setItem('jansahayak_role', newRole);
+    try {
+      const res = await api.get('/profile');
+      if (res.success && res.data) {
+        setUser(res.data);
+        localStorage.setItem('jansahayak_user', JSON.stringify(res.data));
+      }
+    } catch {
+      // Ignore in demo switch
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, login, register, logout, switchDemoRole, language, setLanguage }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        role,
+        availableRoles,
+        loading,
+        login,
+        register,
+        updateProfile,
+        changePassword,
+        switchRole,
+        logout,
+        switchDemoRole,
+        language,
+        setLanguage
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

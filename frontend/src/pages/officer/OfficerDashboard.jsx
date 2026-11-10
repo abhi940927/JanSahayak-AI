@@ -13,7 +13,12 @@ import {
   Filter,
   ArrowRight,
   ShieldCheck,
-  Building
+  Building,
+  Mail,
+  Phone,
+  User,
+  BadgeCheck,
+  Edit3
 } from 'lucide-react';
 
 export const OfficerDashboard = () => {
@@ -57,6 +62,66 @@ export const OfficerDashboard = () => {
       subtitle={`Department Field Operations & Active Case Queue (${user?.designation || 'Field Officer'})`}
     >
       <div className="space-y-6">
+        {/* Dynamic Officer Profile Banner */}
+        <div className="bg-gradient-to-r from-gov-navy-900 to-gov-navy-800 text-white rounded-2xl p-6 shadow-sm border border-gov-navy-700/60">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user.full_name}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-gov-teal-400 shadow-md"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gov-teal-600 text-white flex items-center justify-center font-black text-2xl uppercase border-2 border-gov-teal-400/40 shadow-sm">
+                  {user?.full_name ? user.full_name.charAt(0) : 'O'}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-black text-white tracking-tight">
+                    {user?.full_name || 'Government Officer'}
+                  </h2>
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gov-teal-500/20 text-gov-teal-300 border border-gov-teal-400/30">
+                    <BadgeCheck className="w-3 h-3 text-gov-teal-400" />
+                    <span>Government Field Clearance</span>
+                  </span>
+                </div>
+
+                <p className="text-xs text-gov-teal-200 font-medium">
+                  {user?.designation || 'Executive Engineer - Zone 3 (PWD)'}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 pt-1">
+                  <span className="flex items-center space-x-1">
+                    <Mail className="w-3.5 h-3.5 text-gov-teal-400" />
+                    <span className="font-mono">{user?.email || 'N/A'}</span>
+                  </span>
+                  {user?.phone_number && (
+                    <span className="flex items-center space-x-1">
+                      <Phone className="w-3.5 h-3.5 text-gov-teal-400" />
+                      <span>{user.phone_number}</span>
+                    </span>
+                  )}
+                  <span className="flex items-center space-x-1">
+                    <Building className="w-3.5 h-3.5 text-gov-teal-400" />
+                    <span>Jurisdiction: Delhi NCT / Assigned Ward</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/profile"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all self-start md:self-auto"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-gov-teal-300" />
+              <span>Officer Profile</span>
+            </Link>
+          </div>
+        </div>
+
         {/* Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">

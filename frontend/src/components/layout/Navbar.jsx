@@ -11,7 +11,8 @@ import {
   X,
   Globe,
   Check,
-  ChevronDown
+  ChevronDown,
+  User
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -277,13 +278,28 @@ export const Navbar = () => {
           </Link>
 
           {user ? (
-            <Link
-              to={getDashboardPath()}
-              className="inline-flex items-center space-x-1.5 bg-gov-navy-900 hover:bg-gov-navy-800 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link
+                to={getDashboardPath()}
+                className="inline-flex items-center space-x-2 bg-gov-navy-900 hover:bg-gov-navy-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm"
+              >
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover border border-gov-teal-400" />
+                ) : (
+                  <span className="w-5 h-5 rounded-full bg-gov-teal-600 text-white text-[10px] flex items-center justify-center font-bold">
+                    {user.full_name ? user.full_name.charAt(0) : 'U'}
+                  </span>
+                )}
+                <span>{user.full_name?.split(' ')[0] || 'Dashboard'}</span>
+              </Link>
+              <Link
+                to="/profile"
+                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200"
+                title="Account Profile"
+              >
+                <User className="w-4 h-4 text-gov-teal-700" />
+              </Link>
+            </div>
           ) : (
             <Link
               to="/login"

@@ -1,13 +1,44 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
-import { mockUsers } from '../services/mockDataStore.js';
+import { mockUsers, findUserByIdOrEmail } from '../services/mockDataStore.js';
 
 export const authenticateUser = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // Handle dev / mock fallback mode
-    if (!isSupabaseConfigured || !authHeader) {
-      // Default to demo citizen or read role from header
+    // Handle dev / mock fallback mode or mock token
+    if (!isSupabaseConfigured || (authHeader && authHeader.includes('mock-token:'))) {
+      let matchedUser = null;
+
+      if (authHeader) {
+        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+        if (token.startsWith('mock-token:')) {
+          const parts = token.split(':');
+          if (parts[2]) {
+            matchedUser = findUserByIdOrEmail(parts[2]);
+          }
+        }
+      }
+
+      // Check explicit user headers
+      if (!matchedUser && req.headers['x-user-id']) {
+        matchedUser = findUserByIdOrEmail(req.headers['x-user-id']);
+      }
+      if (!matchedUser && req.headers['x-user-email']) {
+        matchedUser = findUserByIdOrEmail(req.headers['x-user-email']);
+      }
+
+      // Default to demo citizen or read role from header only if no specific user matched
+      if (!matchedUser) {
+        const requestedRole = req.headers['x-demo-role'] || 'citizen';
+        matchedUser = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
+      }
+
+      req.user = matchedUser;
+      return next();
+    }
+
+    if (!authHeader) {
+      // Default to demo citizen if unauthenticated in non-strict mode
       const requestedRole = req.headers['x-demo-role'] || 'citizen';
       const matchedUser = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
       req.user = matchedUser;

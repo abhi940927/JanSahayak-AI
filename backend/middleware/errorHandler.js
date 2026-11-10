@@ -10,11 +10,13 @@ export const errorHandler = (err, req, res, next) => {
 
   // Check if Zod error
   if (err.name === 'ZodError') {
-    const errorMessages = err.errors.map(e => e.message).join('. ');
+    const errorMessages = (err.errors && err.errors.length > 0) 
+      ? err.errors.map(e => `${e.path.length ? e.path.join('.') + ': ' : ''}${e.message}`).join('. ')
+      : 'Invalid input data. Please verify all required fields.';
     return res.status(400).json({
       success: false,
       message: `Validation failed: ${errorMessages}`,
-      errors: err.errors.map(e => ({
+      errors: (err.errors || []).map(e => ({
         field: e.path.join('.'),
         message: e.message
       }))

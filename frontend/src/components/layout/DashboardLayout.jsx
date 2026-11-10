@@ -20,12 +20,13 @@ import {
 } from 'lucide-react';
 
 export const DashboardLayout = ({ children, title, subtitle }) => {
-  const { user, role, switchDemoRole, logout } = useAuth();
+  const { user, role, availableRoles, switchRole, switchDemoRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -59,20 +60,23 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
     if (role === 'officer') {
       return [
         { label: 'Officer Dashboard', path: '/officer/dashboard', icon: LayoutDashboard },
-        { label: 'Assigned Complaints', path: '/officer/dashboard?tab=queue', icon: ClipboardList }
+        { label: 'Assigned Complaints', path: '/officer/dashboard?tab=queue', icon: ClipboardList },
+        { label: 'My Profile & Security', path: '/profile', icon: User }
       ];
     }
     if (role === 'department_admin' || role === 'super_admin') {
       return [
         { label: 'Admin Overview', path: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Department Analytics', path: '/admin/dashboard?tab=departments', icon: Building2 },
-        { label: 'Grievance Matrix', path: '/admin/dashboard?tab=matrix', icon: Sliders }
+        { label: 'Grievance Matrix', path: '/admin/dashboard?tab=matrix', icon: Sliders },
+        { label: 'My Profile & Security', path: '/profile', icon: User }
       ];
     }
     // Citizen defaults
     return [
       { label: 'My Grievances', path: '/citizen/dashboard', icon: LayoutDashboard },
-      { label: 'File New Grievance', path: '/citizen/file-complaint', icon: FilePlus }
+      { label: 'File New Grievance', path: '/citizen/file-complaint', icon: FilePlus },
+      { label: 'My Profile & Security', path: '/profile', icon: User }
     ];
   };
 
@@ -115,10 +119,10 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
                 }}
                 className="bg-transparent text-xs font-bold text-gov-navy-900 focus:outline-none cursor-pointer"
               >
-                <option value="citizen">Citizen (Aarav)</option>
-                <option value="officer">Field Officer (PWD)</option>
-                <option value="department_admin">Dept Admin (MCD)</option>
-                <option value="super_admin">Super Admin</option>
+                <option value="citizen">👤 Citizen</option>
+                <option value="officer">👮 Field Officer (PWD)</option>
+                <option value="department_admin">🏛️ Dept Admin (MCD)</option>
+                <option value="super_admin">⚡ Super Admin</option>
               </select>
             </div>
 
@@ -169,19 +173,108 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
               )}
             </div>
 
-            {/* User Profile display */}
-            <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
-              <div className="w-8 h-8 rounded-full bg-gov-navy-800 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
-                {user?.full_name ? user.full_name.charAt(0) : 'U'}
-              </div>
-              <div className="hidden md:block text-left">
-                <div className="text-xs font-bold text-slate-800 leading-tight">
-                  {user?.full_name || 'Aarav Sharma'}
+            {/* Interactive User Profile Dropdown Menu */}
+            <div className="relative pl-2 border-l border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center space-x-2.5 p-1 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none"
+                aria-expanded={showProfileMenu}
+                aria-label="User account menu"
+              >
+                {user?.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user?.full_name || 'User avatar'}
+                    className="w-8 h-8 rounded-full object-cover border border-gov-teal-500 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gov-navy-900 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                    {user?.full_name ? user.full_name.charAt(0) : 'U'}
+                  </div>
+                )}
+                <div className="hidden md:block text-left">
+                  <div className="text-xs font-bold text-slate-800 leading-tight">
+                    {user?.full_name || 'Authenticated User'}
+                  </div>
+                  <div className="text-[10px] text-gov-teal-700 font-medium capitalize">
+                    {role.replace('_', ' ')}
+                  </div>
                 </div>
-                <div className="text-[10px] text-gov-teal-700 font-medium capitalize">
-                  {role.replace('_', ' ')}
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-xs font-bold text-gov-navy-900 truncate">
+                      {user?.full_name || 'Authenticated User'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
+                      {user?.email}
+                    </p>
+                    <div className="mt-2 inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gov-teal-50 text-gov-teal-800 border border-gov-teal-200 capitalize">
+                      <span>{role.replace('_', ' ')}</span>
+                    </div>
+                  </div>
+
+                  <div className="py-1">
+                    <Link
+                      to="/profile"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center space-x-2.5 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-gov-teal-700 transition-colors"
+                    >
+                      <User className="w-4 h-4 text-slate-400" />
+                      <span>View & Edit Profile</span>
+                    </Link>
+
+                    {/* Multi-role quick switch if account has multiple roles */}
+                    {availableRoles && availableRoles.length > 1 && (
+                      <div className="px-4 py-2 border-t border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                          Switch Active Console:
+                        </span>
+                        <div className="space-y-1">
+                          {availableRoles.map(r => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={async () => {
+                                await switchRole(r);
+                                setShowProfileMenu(false);
+                                if (r === 'officer') navigate('/officer/dashboard');
+                                else if (r === 'citizen') navigate('/citizen/dashboard');
+                                else navigate('/admin/dashboard');
+                              }}
+                              className={`w-full text-left text-xs px-2 py-1 rounded font-medium capitalize flex items-center justify-between ${
+                                r === role ? 'bg-gov-teal-50 text-gov-teal-800 font-bold' : 'text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{r.replace('_', ' ')}</span>
+                              {r === role && <span className="text-[10px] text-gov-teal-600 font-bold">Active</span>}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setShowProfileMenu(false);
+                        await logout();
+                        navigate('/login');
+                      }}
+                      className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Log Out Session</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -226,7 +319,7 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
                   }}
                   className="w-full bg-white text-xs font-semibold text-gov-navy-900 border border-slate-300 rounded p-1.5"
                 >
-                  <option value="citizen">👤 Citizen (Aarav)</option>
+                  <option value="citizen">👤 Citizen</option>
                   <option value="officer">👮 Field Officer (PWD)</option>
                   <option value="department_admin">🏛️ Dept Admin (MCD)</option>
                   <option value="super_admin">⚡ Super Admin</option>
