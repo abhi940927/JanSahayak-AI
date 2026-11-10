@@ -8,6 +8,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
       const cached = localStorage.getItem('jansahayak_user');
+      // Purge any legacy 'Aarav' demo cache from previous sessions
+      if (cached && (cached.includes('Aarav') || cached.includes('citizen@jansahayak.in'))) {
+        localStorage.removeItem('jansahayak_user');
+        localStorage.removeItem('jansahayak_token');
+        localStorage.removeItem('jansahayak_role');
+        localStorage.removeItem('jansahayak_demo_role');
+        return null;
+      }
       return cached ? JSON.parse(cached) : null;
     } catch {
       return null;
@@ -16,8 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const [role, setRole] = useState(() => {
     const cachedRole = localStorage.getItem('jansahayak_role');
-    const demoRole = localStorage.getItem('jansahayak_demo_role');
-    return cachedRole || demoRole || 'citizen';
+    return cachedRole || 'citizen';
   });
 
   const [availableRoles, setAvailableRoles] = useState(() => {
@@ -79,18 +86,13 @@ export const AuthProvider = ({ children }) => {
           setAvailableRoles(res.data.roles || [res.data.role]);
           localStorage.setItem('jansahayak_user', JSON.stringify(res.data));
           localStorage.setItem('jansahayak_role', res.data.role);
+        } else {
+          setUser(null);
+          localStorage.removeItem('jansahayak_user');
+          localStorage.removeItem('jansahayak_token');
         }
       } else {
-        // If in evaluation demo mode without explicit user token
-        const demoRole = localStorage.getItem('jansahayak_demo_role');
-        if (demoRole) {
-          const res = await api.get('/profile');
-          if (res.success && res.data) {
-            setUser(res.data);
-            setRole(res.data.role);
-            setAvailableRoles(res.data.roles || [res.data.role]);
-          }
-        }
+        setUser(null);
       }
     } catch (err) {
       console.warn('[AuthContext] Session init warning:', err.message);

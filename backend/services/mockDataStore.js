@@ -223,9 +223,9 @@ export const mockUsers = [
   {
     id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u01',
     email: 'citizen@jansahayak.in',
-    full_name: 'Aarav Sharma',
+    full_name: 'Citizen User',
     phone_number: '+91 98765 43210',
-    dob: '1992-05-14',
+    dob: '1995-05-14',
     avatar_url: null,
     role: 'citizen',
     roles: ['citizen'],

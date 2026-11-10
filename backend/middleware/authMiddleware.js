@@ -5,105 +5,98 @@ export const authenticateUser = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // Handle dev / mock fallback mode or mock token
-    if (!isSupabaseConfigured || (authHeader && authHeader.includes('mock-token:'))) {
-      let matchedUser = null;
+    // Strict authentication: Require authorization header
+    if (!authHeader || authHeader === 'Bearer null' || authHeader === 'Bearer undefined' || authHeader === 'Bearer') {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in or register.'
+      });
+    }
 
-      if (authHeader) {
-        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-        if (token.startsWith('mock-token:')) {
-          const parts = token.split(':');
-          if (parts[2]) {
-            matchedUser = findUserByIdOrEmail(parts[2]);
-          }
-        }
-      }
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
-      // Check explicit user headers
-      if (!matchedUser && req.headers['x-user-id']) {
-        matchedUser = findUserByIdOrEmail(req.headers['x-user-id']);
-      }
-      if (!matchedUser && req.headers['x-user-email']) {
-        matchedUser = findUserByIdOrEmail(req.headers['x-user-email']);
-      }
+    if (!token || token === 'null' || token === 'undefined') {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in or register.'
+      });
+    }
 
-      // Default to demo citizen or read role from header only if no specific user matched
+    // Handle mock token
+    if (token.startsWith('mock-token:')) {
+      const parts = token.split(':');
+      const userIdOrEmail = parts[2];
+      const matchedUser = userIdOrEmail ? findUserByIdOrEmail(userIdOrEmail) : null;
+
       if (!matchedUser) {
-        const requestedRole = req.headers['x-demo-role'] || 'citizen';
-        matchedUser = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
+        return res.status(401).json({
+          success: false,
+          message: 'Session expired or user not found. Please log in again.'
+        });
       }
 
       req.user = matchedUser;
       return next();
     }
 
-    if (!authHeader || authHeader === 'Bearer null' || authHeader === 'Bearer undefined') {
-      const demoRole = req.headers['x-demo-role'];
-      if (demoRole) {
-        req.user = mockUsers.find(u => u.role === demoRole) || mockUsers[0];
+    // Verify token with Supabase if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+        if (authError || !user) {
+          return res.status(401).json({
+            success: false,
+            message: 'Session expired or invalid authentication token.'
+          });
+        }
+
+        // Retrieve database profile with role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile || !profile.is_active) {
+          return res.status(403).json({ success: false, message: 'Account is deactivated or unauthorized' });
+        }
+
+        // Retrieve authorized roles
+        const { data: roleRecords } = await supabase
+          .from('user_roles')
+          .select('role, department_id')
+          .eq('user_id', user.id);
+
+        let userRoles = [];
+        if (roleRecords && roleRecords.length > 0) {
+          userRoles = Array.from(new Set(roleRecords.map(r => r.role)));
+        } else if (Array.isArray(profile.roles) && profile.roles.length > 0) {
+          userRoles = profile.roles;
+        } else {
+          userRoles = [profile.role || 'citizen'];
+        }
+
+        req.user = {
+          ...profile,
+          roles: userRoles
+        };
         return next();
+      } catch (err) {
+        console.warn('[Auth Middleware Warning]: Supabase validation error:', err.message);
       }
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required. Please log in or register to submit a grievance.'
-      });
     }
 
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-
-    if (!token || token === 'null' || token === 'undefined') {
-      const demoRole = req.headers['x-demo-role'];
-      if (demoRole) {
-        req.user = mockUsers.find(u => u.role === demoRole) || mockUsers[0];
-        return next();
-      }
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required. Please log in or register to submit a grievance.'
-      });
-    }
-
-    // Verify token with Supabase
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-      if (authError || !user) {
-        // Fallback to demo citizen for guest civic redressing
-        const requestedRole = req.headers['x-demo-role'] || 'citizen';
-        req.user = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
-        return next();
-      }
-
-      // Retrieve database profile with role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profile) {
-        const requestedRole = req.headers['x-demo-role'] || 'citizen';
-        req.user = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
-        return next();
-      }
-
-      if (!profile.is_active) {
-        return res.status(403).json({ success: false, message: 'User account has been deactivated' });
-      }
-
-      req.user = profile;
-      next();
-    } catch (networkErr) {
-      console.warn('[Auth Middleware Warning]: Supabase unreachable, fallback to demo citizen:', networkErr.message);
-      const requestedRole = req.headers['x-demo-role'] || 'citizen';
-      req.user = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
-      return next();
-    }
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication failed. Please log in again.'
+    });
   } catch (err) {
     console.error('[Auth Middleware Error]:', err);
-    const requestedRole = req.headers['x-demo-role'] || 'citizen';
-    req.user = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
-    return next();
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required. Please log in.'
+    });
   }
 };
 
