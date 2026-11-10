@@ -4,13 +4,19 @@ import { mockDepartments, mockCategories } from '../services/mockDataStore.js';
 export const getDepartments = async (req, res, next) => {
   try {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return res.json({ success: true, data });
+      try {
+        const { data, error } = await supabase
+          .from('departments')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return res.json({ success: true, data });
+        }
+        console.warn('[DepartmentController] Supabase returned empty or error, falling back to seed departments:', error?.message);
+      } catch (sbErr) {
+        console.warn('[DepartmentController] Supabase query failed, falling back:', sbErr.message);
+      }
     }
 
     res.json({ success: true, data: mockDepartments });
@@ -24,11 +30,17 @@ export const getCategories = async (req, res, next) => {
     const { department_id } = req.query;
 
     if (isSupabaseConfigured) {
-      let query = supabase.from('categories').select('*').eq('is_active', true);
-      if (department_id) query = query.eq('department_id', department_id);
-      const { data, error } = await query.order('name');
-      if (error) throw error;
-      return res.json({ success: true, data });
+      try {
+        let query = supabase.from('categories').select('*').eq('is_active', true);
+        if (department_id) query = query.eq('department_id', department_id);
+        const { data, error } = await query.order('name');
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return res.json({ success: true, data });
+        }
+        console.warn('[DepartmentController] Supabase categories empty or error, falling back:', error?.message);
+      } catch (sbErr) {
+        console.warn('[DepartmentController] Supabase categories query failed, falling back:', sbErr.message);
+      }
     }
 
     let categories = [...mockCategories];
