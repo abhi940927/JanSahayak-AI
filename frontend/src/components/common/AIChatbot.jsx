@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bot,
   MessageSquare,
@@ -16,7 +17,10 @@ import {
   Camera,
   Copy,
   Check,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Lock,
+  LogIn,
+  UserPlus
 } from 'lucide-react';
 import api from '../../services/api';
 import axios from 'axios';
@@ -37,8 +41,10 @@ const LOCAL_CIVIC_KNOWLEDGE = [
 ];
 
 export const AIChatbot = () => {
-  const { user } = useAuth();
+  const { user, switchDemoRole } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [authActionLoading, setAuthActionLoading] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 'welcome-1',
@@ -73,6 +79,25 @@ export const AIChatbot = () => {
   const [copiedId, setCopiedId] = useState(null);
 
   const messagesEndRef = useRef(null);
+
+  // Restore pending draft after login/register if available
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('jansahayak_pending_complaint');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.messages && parsed.messages.length > 0) {
+          setMessages(parsed.messages);
+          if (parsed.cardLocation) setCardLocation(parsed.cardLocation);
+          if (parsed.attachedPhoto) setAttachedPhoto(parsed.attachedPhoto);
+          setIsOpen(true);
+        }
+        localStorage.removeItem('jansahayak_pending_complaint');
+      }
+    } catch (e) {
+      console.warn('Draft restore notice:', e);
+    }
+  }, []);
 
   // Load departments and categories for ID mapping
   useEffect(() => {
@@ -266,8 +291,39 @@ export const AIChatbot = () => {
     }
   };
 
+  const handleNavigateAuth = (path) => {
+    try {
+      const pendingState = {
+        cardLocation,
+        attachedPhoto,
+        messages,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('jansahayak_pending_complaint', JSON.stringify(pendingState));
+    } catch (e) {
+      console.warn('Draft save notice:', e);
+    }
+    navigate(`${path}?redirect=${encodeURIComponent(window.location.pathname)}`);
+  };
+
+  const handleQuickCitizenLogin = async () => {
+    try {
+      setAuthActionLoading(true);
+      await switchDemoRole('citizen');
+    } catch (err) {
+      console.error('Demo auth error:', err);
+    } finally {
+      setAuthActionLoading(false);
+    }
+  };
+
   // Automated 1-Click Grievance Filing directly from Chat
   const handleInstantFileGrievance = async (messageId, grievanceDraft) => {
+    if (!user) {
+      handleNavigateAuth('/login');
+      return;
+    }
+
     setFilingStatus(prev => ({ ...prev, [messageId]: 'filing' }));
 
     // Generate guaranteed Unique Tracking ID (e.g. JS-2026-84910)
@@ -564,23 +620,83 @@ export const AIChatbot = () => {
                           </a>
                         </div>
                       </div>
+                    ) : !user ? (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2.5">
+                        <div className="flex items-start gap-2">
+                          <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-bold text-amber-300">
+                              Login or Register Required to Raise Grievance
+                            </p>
+                            <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
+                              To officially submit your grievance to authorities, enable legal SLA tracking, and view real-time resolution updates, please log in or register.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleNavigateAuth('/login')}
+                            className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <LogIn className="w-3.5 h-3.5" /> Log In
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleNavigateAuth('/register')}
+                            className="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-lg border border-slate-600 transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" /> Register
+                          </button>
+                        </div>
+
+                        <div className="pt-1 border-t border-slate-700/60 text-center">
+                          <button
+                            type="button"
+                            onClick={handleQuickCitizenLogin}
+                            disabled={authActionLoading}
+                            className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 flex items-center justify-center gap-1 mx-auto"
+                          >
+                            {authActionLoading ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" /> Verifying...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3 text-emerald-400" /> 1-Click Quick Citizen Verification
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleInstantFileGrievance(msg.id, msg.grievance)}
-                        disabled={filingStatus[msg.id] === 'filing'}
-                        className="w-full py-3 px-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:opacity-95 active:scale-[0.98] text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2"
-                      >
-                        {filingStatus[msg.id] === 'filing' ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Submitting &amp; Generating Tracking ID...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4" /> 🚀 Submit Grievance &amp; Get Tracking ID
-                          </>
-                        )}
-                      </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-emerald-300 bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
+                          <span className="flex items-center gap-1.5 truncate">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span className="truncate">Citizen: <strong>{user.full_name || user.email}</strong></span>
+                          </span>
+                          <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider shrink-0">Verified</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleInstantFileGrievance(msg.id, msg.grievance)}
+                          disabled={filingStatus[msg.id] === 'filing'}
+                          className="w-full py-3 px-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:opacity-95 active:scale-[0.98] text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2"
+                        >
+                          {filingStatus[msg.id] === 'filing' ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" /> Submitting &amp; Generating Tracking ID...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" /> 🚀 Submit Grievance &amp; Get Tracking ID
+                            </>
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

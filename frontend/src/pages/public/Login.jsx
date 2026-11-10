@@ -122,6 +122,13 @@ export const Login = () => {
   }, [isCarouselPaused, slides.length]);
 
   const routeUserByRole = (userRole) => {
+    const searchParams = new URLSearchParams(location.search);
+    const redirectUrl = searchParams.get('redirect');
+    if (redirectUrl) {
+      navigate(redirectUrl);
+      return;
+    }
+
     if (userRole === 'officer') {
       navigate('/officer/dashboard');
     } else if (userRole === 'department_admin' || userRole === 'super_admin') {

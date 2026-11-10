@@ -121,7 +121,13 @@ export const Register = () => {
         confirm_password: formData.confirm_password
       });
 
-      navigate('/citizen/dashboard');
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectUrl = searchParams.get('redirect');
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else {
+        navigate('/citizen/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {

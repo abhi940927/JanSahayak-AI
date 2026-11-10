@@ -8,6 +8,12 @@ import {
 export const createComplaint = async (req, res, next) => {
   try {
     const validatedData = createComplaintSchema.parse(req.body);
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in or register on JanSahayak to raise a complaint.'
+      });
+    }
     const complaint = await ComplaintService.createComplaint(validatedData, req.user);
     res.status(201).json({
       success: true,

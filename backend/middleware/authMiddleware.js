@@ -38,19 +38,29 @@ export const authenticateUser = async (req, res, next) => {
     }
 
     if (!authHeader || authHeader === 'Bearer null' || authHeader === 'Bearer undefined') {
-      // Default to demo citizen if unauthenticated in non-strict mode
-      const requestedRole = req.headers['x-demo-role'] || 'citizen';
-      const matchedUser = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
-      req.user = matchedUser;
-      return next();
+      const demoRole = req.headers['x-demo-role'];
+      if (demoRole) {
+        req.user = mockUsers.find(u => u.role === demoRole) || mockUsers[0];
+        return next();
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in or register to submit a grievance.'
+      });
     }
 
     const token = authHeader.replace(/^Bearer\s+/i, '');
 
     if (!token || token === 'null' || token === 'undefined') {
-      const requestedRole = req.headers['x-demo-role'] || 'citizen';
-      req.user = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
-      return next();
+      const demoRole = req.headers['x-demo-role'];
+      if (demoRole) {
+        req.user = mockUsers.find(u => u.role === demoRole) || mockUsers[0];
+        return next();
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in or register to submit a grievance.'
+      });
     }
 
     // Verify token with Supabase
