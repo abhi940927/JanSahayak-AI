@@ -85,3 +85,23 @@ export const updateStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+export const submitFeedback = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { rating, comments } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Valid rating between 1 and 5 is required' });
+    }
+
+    const feedback = await ComplaintService.submitFeedback(id, { rating, comments }, req.user);
+    res.json({
+      success: true,
+      message: 'Citizen feedback recorded successfully',
+      data: feedback
+    });
+  } catch (err) {
+    next(err);
+  }
+};

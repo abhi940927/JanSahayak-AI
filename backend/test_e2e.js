@@ -55,7 +55,16 @@ async function testFullFlow() {
   });
   console.log('✅ Officer Status Update:', resolvedRes.data.data.status);
 
-  // 7. Verify Admin Analytics Real Calculation
+  // 7. Citizen Submits Resolution Feedback
+  const feedbackRes = await axios.post(`${API}/complaints/${complaintId}/feedback`, {
+    rating: 5,
+    comments: 'Super fast intervention, clean water restored within 6 hours! Commendable work.'
+  }, {
+    headers: { 'x-demo-role': 'citizen' }
+  });
+  console.log('✅ Citizen Feedback Submitted:', feedbackRes.data.data.rating, 'Stars, Satisfaction:', feedbackRes.data.data.satisfaction_level);
+
+  // 8. Verify Admin Analytics Real Calculation
   const adminStats = await axios.get(`${API}/analytics/admin`, {
     headers: { 'x-demo-role': 'super_admin' }
   });

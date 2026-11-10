@@ -351,4 +351,49 @@ export class ComplaintService {
 
     return complaint;
   }
+
+  /**
+   * Submit citizen satisfaction feedback
+   */
+  static async submitFeedback(complaintId, { rating, comments }, user) {
+    const complaint = await this.getComplaintById(complaintId, user);
+    if (!complaint) throw new Error('Complaint not found');
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('feedback').insert([{
+        complaint_id: complaintId,
+        citizen_id: user.id,
+        rating,
+        comments,
+        satisfaction_level: rating >= 4 ? 'Satisfied' : rating === 3 ? 'Neutral' : 'Unsatisfied'
+      }]).select().single();
+      if (error) throw error;
+      return data;
+    }
+
+    const feedbackEntry = {
+      id: uuidv4(),
+      complaint_id: complaintId,
+      citizen_id: user.id,
+      rating,
+      comments,
+      satisfaction_level: rating >= 4 ? 'Satisfied' : rating === 3 ? 'Neutral' : 'Unsatisfied',
+      created_at: new Date().toISOString()
+    };
+
+    complaint.feedback = feedbackEntry;
+
+    mockHistory.push({
+      id: uuidv4(),
+      complaint_id: complaint.id,
+      performed_by: user.id,
+      from_status: complaint.status,
+      to_status: complaint.status,
+      action: 'Citizen Feedback Submitted',
+      remarks: `Rating: ${rating}/5 Stars. Comments: ${comments || 'No written remarks'}`,
+      created_at: new Date().toISOString()
+    });
+
+    return feedbackEntry;
+  }
 }

@@ -224,17 +224,46 @@ export const FileComplaint = () => {
             />
           </div>
 
-          {/* Description */}
+          {/* Language Selection & Description */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Detailed Description <span className="text-rose-500">*</span>
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Detailed Description <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[11px] text-slate-400 font-medium">Language:</span>
+                {[
+                  { code: 'en', label: 'English' },
+                  { code: 'hi', label: 'हिन्दी' },
+                  { code: 'pa', label: 'ਪੰਜਾਬੀ' }
+                ].map(l => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, preferred_language: l.code })}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${
+                      formData.preferred_language === l.code
+                        ? 'bg-gov-teal-600 text-white border-gov-teal-600'
+                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <textarea
               required
               rows={4}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe the issue, landmarks, safety risks, and duration of the problem in English, Hindi, or Punjabi..."
+              placeholder={
+                formData.preferred_language === 'hi'
+                  ? 'अपनी शिकायत, क्षेत्र, सड़क या समस्या का विस्तृत विवरण हिन्दी में लिखें...'
+                  : formData.preferred_language === 'pa'
+                  ? 'ਆਪਣੀ ਸ਼ਿਕਾਇਤ ਅਤੇ ਸਮੱਸਿਆ ਦਾ ਵੇਰਵਾ ਪੰਜਾਬੀ ਵਿੱਚ ਦਰਜ ਕਰੋ...'
+                  : 'Describe the issue, landmarks, safety risks, and duration of the problem in English, Hindi, or Punjabi...'
+              }
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gov-teal-500 focus:bg-white"
             />
           </div>

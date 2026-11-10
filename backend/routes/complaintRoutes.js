@@ -3,7 +3,8 @@ import {
   createComplaint,
   getComplaints,
   getComplaintById,
-  updateStatus
+  updateStatus,
+  submitFeedback
 } from '../controllers/complaintController.js';
 import { authenticateUser, requireRole } from '../middleware/authMiddleware.js';
 
@@ -15,5 +16,6 @@ router.post('/', createComplaint);
 router.get('/', getComplaints);
 router.get('/:id', getComplaintById);
 router.patch('/:id/status', requireRole(['officer', 'department_admin', 'super_admin']), updateStatus);
+router.post('/:id/feedback', submitFeedback);
 
 export default router;
