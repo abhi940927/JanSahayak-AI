@@ -187,6 +187,99 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
         </div>
       </header>
 
+      {/* Mobile Drawer Backdrop & Drawer */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+          ></div>
+          <div className="relative w-72 max-w-[85vw] bg-white h-full shadow-2xl p-5 flex flex-col justify-between z-10 animate-in slide-in-from-left">
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-lg bg-gov-navy-900 text-gov-teal-400 flex items-center justify-center font-bold">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <span className="font-extrabold text-gov-navy-900 text-base">JanSahayak AI</span>
+                </div>
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+                  aria-label="Close navigation"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Mobile active role selector */}
+              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Switch Role:</span>
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    switchDemoRole(e.target.value);
+                    setMobileSidebarOpen(false);
+                    if (e.target.value === 'officer') navigate('/officer/dashboard');
+                    else if (e.target.value === 'citizen') navigate('/citizen/dashboard');
+                    else navigate('/admin/dashboard');
+                  }}
+                  className="w-full bg-white text-xs font-semibold text-gov-navy-900 border border-slate-300 rounded p-1.5"
+                >
+                  <option value="citizen">👤 Citizen (Aarav)</option>
+                  <option value="officer">👮 Field Officer (PWD)</option>
+                  <option value="department_admin">🏛️ Dept Admin (MCD)</option>
+                  <option value="super_admin">⚡ Super Admin</option>
+                </select>
+              </div>
+
+              {/* Links */}
+              <nav className="mt-4 space-y-1">
+                {navLinks.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path.split('?')[0];
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                        isActive ? 'bg-gov-navy-900 text-white font-semibold' : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 space-y-1">
+              <Link
+                to="/"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="block px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 rounded-lg"
+              >
+                Back to Portal Home
+              </Link>
+              <button
+                onClick={() => {
+                  setMobileSidebarOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center space-x-2 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Body with Sidebar */}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 gap-6">
         {/* Desktop Sidebar */}

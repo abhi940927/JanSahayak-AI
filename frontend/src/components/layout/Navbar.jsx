@@ -35,21 +35,24 @@ export const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200">
       {/* Official Government Portal Banner */}
-      <div className="bg-gov-navy-900 text-slate-300 text-xs py-1 px-4 sm:px-8 flex justify-between items-center border-b border-gov-navy-800">
-        <div className="flex items-center space-x-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span>Official Public Service Redressal Portal • JanSahayak AI v1.0</span>
+      <div className="bg-gov-navy-900 text-slate-300 text-xs py-1 px-3 sm:px-8 flex justify-between items-center border-b border-gov-navy-800 gap-2">
+        <div className="flex items-center space-x-2 min-w-0">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+          <span className="truncate text-[11px] sm:text-xs">
+            <span className="hidden sm:inline">Official Public Service Redressal Portal • </span>JanSahayak AI v1.0
+          </span>
         </div>
-        <div className="flex items-center space-x-3">
-          <span className="text-slate-400">Demo Role:</span>
+        <div className="flex items-center space-x-2 shrink-0">
+          <span className="text-slate-400 text-[11px] hidden sm:inline">Demo Role:</span>
           <select
             value={role}
             onChange={(e) => switchDemoRole(e.target.value)}
-            className="bg-gov-navy-800 text-xs text-white border border-slate-700 rounded px-2 py-0.5 focus:outline-none focus:border-gov-teal-500"
+            className="bg-gov-navy-800 text-[11px] sm:text-xs text-white border border-slate-700 rounded px-2 py-0.5 focus:outline-none focus:border-gov-teal-500 max-w-[150px] sm:max-w-none"
+            aria-label="Select Evaluation Role"
           >
-            <option value="citizen">👤 Citizen (Aarav)</option>
-            <option value="officer">👮 Field Officer (PWD)</option>
-            <option value="department_admin">🏛️ Dept Admin (MCD)</option>
+            <option value="citizen">👤 Citizen</option>
+            <option value="officer">👮 Field Officer</option>
+            <option value="department_admin">🏛️ Dept Admin</option>
             <option value="super_admin">⚡ Super Admin</option>
           </select>
         </div>

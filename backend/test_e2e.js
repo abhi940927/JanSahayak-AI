@@ -13,6 +13,10 @@ async function testFullFlow() {
   const depts = await axios.get(`${API}/departments`);
   console.log(`✅ Loaded ${depts.data.data.length} Government Departments`);
 
+  // 2b. Public Tracking Number Lookup (Case-Insensitive)
+  const trackTest = await axios.get(`${API}/complaints/js-2026-94821`);
+  console.log('✅ Public Case-Insensitive Tracking Test:', trackTest.data.data.tracking_number, 'Status:', trackTest.data.data.status);
+
   // 3. Create Complaint as Citizen
   const newComplaint = await axios.post(`${API}/complaints`, {
     title: 'Severe pipeline leak gushing drinking water near Metro station',

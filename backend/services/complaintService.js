@@ -245,14 +245,15 @@ export class ComplaintService {
       if (isUUID && idOrTracking.length === 36) {
         query = query.eq('id', idOrTracking);
       } else {
-        query = query.eq('tracking_number', idOrTracking);
+        query = query.ilike('tracking_number', idOrTracking.trim());
       }
 
       const { data, error } = await query.single();
       if (error || !data) return null;
 
-      // Verify access jurisdiction
-      if (user.role === 'citizen' && data.citizen_id !== user.id) {
+      // Verify access jurisdiction (allow public tracking by tracking number)
+      const isTrackingNumberLookup = idOrTracking.startsWith('JS-');
+      if (!isTrackingNumberLookup && user.role === 'citizen' && data.citizen_id !== user.id) {
         throw new Error('Access denied to this grievance record');
       }
 
@@ -268,10 +269,15 @@ export class ComplaintService {
     }
 
     // Mock store
-    const complaint = mockComplaints.find(c => c.id === idOrTracking || c.tracking_number === idOrTracking);
+    const normalizedQuery = idOrTracking.trim().toLowerCase();
+    const complaint = mockComplaints.find(c =>
+      c.id === idOrTracking ||
+      c.tracking_number.toLowerCase() === normalizedQuery
+    );
     if (!complaint) return null;
 
-    if (user.role === 'citizen' && complaint.citizen_id !== user.id) {
+    const isTrackingNumberLookup = idOrTracking.toUpperCase().startsWith('JS-');
+    if (!isTrackingNumberLookup && user.role === 'citizen' && complaint.citizen_id !== user.id) {
       throw new Error('Access denied to this grievance record');
     }
 
