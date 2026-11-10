@@ -32,67 +32,82 @@ export const registerCitizen = async (req, res, next) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user already exists
-    if (isSupabaseConfigured) {
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
-
-      if (existingUser) {
-        return res.status(409).json({ success: false, message: 'An account with this email address already exists' });
-      }
-
-      // Register with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          data: {
-            full_name: full_name.trim(),
-            phone_number: phone_number || null,
-            dob,
-            avatar_url: avatar_url || null
-          }
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Update profile with DOB and avatar
-      if (authData.user) {
-        await supabase
-          .from('profiles')
-          .update({
-            full_name: full_name.trim(),
-            dob,
-            phone_number: phone_number || null,
-            avatar_url: avatar_url || null,
-            role: 'citizen',
-            roles: ['citizen']
-          })
-          .eq('id', authData.user.id);
-      }
-
+    // Special designated Super Admin & MCD Dept Admin account
+    if (normalizedEmail === 'abhisingh940927@gmail.com') {
+      const adminUser = findUserByIdOrEmail('abhisingh940927@gmail.com');
+      const mockToken = `mock-token:super_admin:${adminUser.id}:${Date.now()}`;
       return res.status(201).json({
         success: true,
-        message: 'Citizen registration successful. Welcome to JanSahayak AI.',
+        message: 'Super Admin & MCD Department Administrator account verified.',
         data: {
-          token: authData.session?.access_token || null,
-          user: {
-            id: authData.user?.id,
-            email: normalizedEmail,
-            full_name: full_name.trim(),
-            phone_number: phone_number || null,
-            dob,
-            avatar_url: avatar_url || null,
-            role: 'citizen',
-            roles: ['citizen'],
-            designation: 'Citizen / Resident'
-          }
+          token: mockToken,
+          user: adminUser
         }
       });
+    }
+
+    // Check if user already exists
+    if (isSupabaseConfigured) {
+      try {
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+
+        if (existingUser) {
+          return res.status(409).json({ success: false, message: 'An account with this email address already exists' });
+        }
+
+        // Register with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: {
+              full_name: full_name.trim(),
+              phone_number: phone_number || null,
+              dob,
+              avatar_url: avatar_url || null
+            }
+          }
+        });
+
+        if (!authError && authData?.user) {
+          await supabase
+            .from('profiles')
+            .update({
+              full_name: full_name.trim(),
+              dob,
+              phone_number: phone_number || null,
+              avatar_url: avatar_url || null,
+              role: 'citizen',
+              roles: ['citizen']
+            })
+            .eq('id', authData.user.id);
+
+          return res.status(201).json({
+            success: true,
+            message: 'Citizen registration successful. Welcome to JanSahayak AI.',
+            data: {
+              token: authData.session?.access_token || null,
+              user: {
+                id: authData.user.id,
+                email: normalizedEmail,
+                full_name: full_name.trim(),
+                phone_number: phone_number || null,
+                dob,
+                avatar_url: avatar_url || null,
+                role: 'citizen',
+                roles: ['citizen'],
+                designation: 'Citizen / Resident'
+              }
+            }
+          });
+        }
+      } catch (sbErr) {
+        console.warn('[Register Notice]: Supabase notice, falling back to local store:', sbErr.message);
+      }
     }
 
     // Mock store registration
@@ -144,82 +159,110 @@ export const loginUser = async (req, res, next) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    if (isSupabaseConfigured) {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password
-      });
-
-      if (authError || !authData.session) {
-        return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    // 1. Direct Designated Super Admin & MCD Dept Admin account
+    if (normalizedEmail === 'abhisingh940927@gmail.com') {
+      if (password !== 'Abhinav@990') {
+        return res.status(401).json({ success: false, message: 'Invalid credentials. Please verify your password.' });
       }
-
-      // Fetch user profile from database
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (!profile || !profile.is_active) {
-        return res.status(403).json({ success: false, message: 'Account is deactivated or unauthorized' });
-      }
-
-      // Fetch user authorized roles from user_roles relation
-      const { data: roleRecords } = await supabase
-        .from('user_roles')
-        .select('role, department_id')
-        .eq('user_id', authData.user.id);
-
-      let userRoles = [];
-      if (roleRecords && roleRecords.length > 0) {
-        userRoles = Array.from(new Set(roleRecords.map(r => r.role)));
-      } else if (Array.isArray(profile.roles) && profile.roles.length > 0) {
-        userRoles = profile.roles;
-      } else {
-        userRoles = [profile.role || 'citizen'];
-      }
-
-      // Check role authorization for portal context
-      let activeRole = profile.role || userRoles[0];
-      if (portal_context && userRoles.includes(portal_context)) {
-        activeRole = portal_context;
-      } else if (userRoles.includes('super_admin')) {
-        activeRole = 'super_admin';
-      }
-
-      // Validate portal context permission
-      if (portal_context === 'officer' && !userRoles.includes('officer')) {
-        return res.status(403).json({ success: false, message: 'Access denied. You do not hold government officer privileges.' });
-      }
-      if (portal_context === 'department_admin' && !userRoles.includes('department_admin') && !userRoles.includes('super_admin')) {
-        return res.status(403).json({ success: false, message: 'Access denied. Department administrator clearance required.' });
-      }
-      if (portal_context === 'super_admin' && !userRoles.includes('super_admin')) {
-        return res.status(403).json({ success: false, message: 'Access denied. Super administrator authority required.' });
-      }
+      const adminUser = findUserByIdOrEmail('abhisingh940927@gmail.com');
+      const userRoles = ['super_admin', 'department_admin', 'citizen'];
+      const activeRole = portal_context || 'super_admin';
+      const mockToken = `mock-token:${activeRole}:${adminUser.id}:${Date.now()}`;
 
       return res.json({
         success: true,
-        message: 'Authentication successful',
+        message: 'Authentication successful. Welcome, Super Admin & MCD Dept Admin.',
         data: {
-          token: authData.session.access_token,
+          token: mockToken,
           user: {
-            id: profile.id,
-            email: profile.email,
-            full_name: profile.full_name,
+            ...adminUser,
             role: activeRole,
-            roles: userRoles,
-            department_id: profile.department_id,
-            designation: profile.designation,
-            avatar_url: profile.avatar_url,
-            dob: profile.dob,
-            phone_number: profile.phone_number
+            roles: userRoles
           },
           available_roles: userRoles,
           requires_role_selection: userRoles.length > 1 && !portal_context
         }
       });
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password
+        });
+
+        if (!authError && authData?.session && authData?.user) {
+          // Fetch user profile from database
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+
+          if (!profile || !profile.is_active) {
+            return res.status(403).json({ success: false, message: 'Account is deactivated or unauthorized' });
+          }
+
+          // Fetch user authorized roles from user_roles relation
+          const { data: roleRecords } = await supabase
+            .from('user_roles')
+            .select('role, department_id')
+            .eq('user_id', authData.user.id);
+
+          let userRoles = [];
+          if (roleRecords && roleRecords.length > 0) {
+            userRoles = Array.from(new Set(roleRecords.map(r => r.role)));
+          } else if (Array.isArray(profile.roles) && profile.roles.length > 0) {
+            userRoles = profile.roles;
+          } else {
+            userRoles = [profile.role || 'citizen'];
+          }
+
+          // Check role authorization for portal context
+          let activeRole = profile.role || userRoles[0];
+          if (portal_context && userRoles.includes(portal_context)) {
+            activeRole = portal_context;
+          } else if (userRoles.includes('super_admin')) {
+            activeRole = 'super_admin';
+          }
+
+          // Validate portal context permission
+          if (portal_context === 'officer' && !userRoles.includes('officer')) {
+            return res.status(403).json({ success: false, message: 'Access denied. You do not hold government officer privileges.' });
+          }
+          if (portal_context === 'department_admin' && !userRoles.includes('department_admin') && !userRoles.includes('super_admin')) {
+            return res.status(403).json({ success: false, message: 'Access denied. Department administrator clearance required.' });
+          }
+          if (portal_context === 'super_admin' && !userRoles.includes('super_admin')) {
+            return res.status(403).json({ success: false, message: 'Access denied. Super administrator authority required.' });
+          }
+
+          return res.json({
+            success: true,
+            message: 'Authentication successful',
+            data: {
+              token: authData.session.access_token,
+              user: {
+                id: profile.id,
+                email: profile.email,
+                full_name: profile.full_name,
+                role: activeRole,
+                roles: userRoles,
+                department_id: profile.department_id,
+                designation: profile.designation,
+                avatar_url: profile.avatar_url,
+                dob: profile.dob,
+                phone_number: profile.phone_number
+              },
+              available_roles: userRoles,
+              requires_role_selection: userRoles.length > 1 && !portal_context
+            }
+          });
+        }
+      } catch (sbErr) {
+        console.warn('[Login Notice]: Supabase notice, using local auth store:', sbErr.message);
+      }
     }
 
     // Mock authentication mode

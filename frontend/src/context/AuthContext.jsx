@@ -58,11 +58,15 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
       }
 
-      // If Supabase is configured, check for active session
+      // If Supabase is configured, check for active session safely
       if (isSupabaseConfigured && supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          localStorage.setItem('jansahayak_token', session.access_token);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            localStorage.setItem('jansahayak_token', session.access_token);
+          }
+        } catch (sbErr) {
+          console.warn('[Session Init Notice]', sbErr.message);
         }
       }
 
@@ -103,12 +107,15 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      // 1. If Supabase configured, authenticate with Supabase Auth
+      // 1. If Supabase configured, attempt Supabase Auth without blocking backend auth
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        if (data.session) {
-          localStorage.setItem('jansahayak_token', data.session.access_token);
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (!error && data?.session) {
+            localStorage.setItem('jansahayak_token', data.session.access_token);
+          }
+        } catch (supabaseErr) {
+          console.warn('[Supabase Auth Client Notice]', supabaseErr.message);
         }
       }
 

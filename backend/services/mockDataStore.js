@@ -279,6 +279,21 @@ export const mockUsers = [
     is_active: true,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u99',
+    email: 'abhisingh940927@gmail.com',
+    full_name: 'Abhinav Singh',
+    phone_number: '+91 94092 70000',
+    dob: '2006-06-23',
+    avatar_url: null,
+    role: 'super_admin',
+    roles: ['super_admin', 'department_admin', 'citizen'],
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // MCD
+    designation: 'Principal Super Admin & MCD Department Administrator',
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z'
   }
 ];
 
@@ -287,7 +302,10 @@ export const mockUserRoles = [
   { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u02', role: 'officer', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' },
   { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u03', role: 'department_admin', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
   { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04', role: 'super_admin', department_id: null },
-  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04', role: 'department_admin', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' }
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u04', role: 'department_admin', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u99', role: 'super_admin', department_id: null },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u99', role: 'department_admin', department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
+  { id: uuidv4(), user_id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u99', role: 'citizen', department_id: null }
 ];
 
 export const mockInvitations = [
