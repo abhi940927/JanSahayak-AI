@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import {
   ShieldAlert,
+  ShieldCheck,
   LayoutDashboard,
   FilePlus,
   ClipboardList,

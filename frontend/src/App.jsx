@@ -21,6 +21,7 @@ import { ComplaintDetail } from './pages/citizen/ComplaintDetail';
 import { OfficerDashboard } from './pages/officer/OfficerDashboard';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { ProfilePage } from './pages/common/ProfilePage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Role Protected Guard
 const ProtectedRoute = ({ allowedRoles = [], children }) => {
@@ -28,8 +29,10 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">
-        Verifying authorization credentials...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-600">
+        <div className="w-10 h-10 border-3 border-gov-teal-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm font-semibold text-slate-700">Verifying security credentials...</p>
+        <p className="text-xs text-slate-400 mt-1">Please wait while JanSahayak AI prepares your workspace</p>
       </div>
     );
   }
@@ -136,10 +139,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

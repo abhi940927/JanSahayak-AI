@@ -30,7 +30,16 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [language, setLanguageState] = useState(localStorage.getItem('jansahayak_language') || 'en');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    // If cached user and token exist, don't block the initial render
+    try {
+      const cached = localStorage.getItem('jansahayak_user');
+      const token = localStorage.getItem('jansahayak_token');
+      return !(cached && token);
+    } catch {
+      return false;
+    }
+  });
 
   const setLanguage = (lang) => {
     setLanguageState(lang);
@@ -43,7 +52,11 @@ export const AuthProvider = ({ children }) => {
 
   const initAuthSession = async () => {
     try {
-      setLoading(true);
+      // Only set loading if no cached user exists
+      const cached = localStorage.getItem('jansahayak_user');
+      if (!cached) {
+        setLoading(true);
+      }
 
       // If Supabase is configured, check for active session
       if (isSupabaseConfigured && supabase) {

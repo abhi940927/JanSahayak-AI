@@ -16,6 +16,7 @@ import {
   Star,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   Cpu,
   FileCheck2,
   Sparkles,
