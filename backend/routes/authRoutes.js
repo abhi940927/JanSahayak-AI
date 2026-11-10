@@ -1,7 +1,8 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/authMiddleware.js';
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
-import { mockUsers, findUserByIdOrEmail, saveDynamicUser } from '../services/mockDataStore.js';
+import { mockUsers, findUserByIdOrEmail, saveDynamicUser, mockSentEmails } from '../services/mockDataStore.js';
+import { buildAuthEmailTemplate } from '../services/mailerService.js';
 import {
   registerCitizen,
   loginUser,
@@ -14,6 +15,37 @@ import {
 } from '../controllers/authController.js';
 
 const router = express.Router();
+
+// ==========================================
+// MAILER INSPECTION & PREVIEW ENDPOINTS
+// ==========================================
+router.get('/mailer/latest', (req, res) => {
+  const latest = mockSentEmails[0] || null;
+  res.json({
+    success: true,
+    total_dispatched: mockSentEmails.length,
+    latest_email: latest
+  });
+});
+
+router.get('/mailer/preview', (req, res) => {
+  const latest = mockSentEmails[0];
+  if (latest && latest.html) {
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(latest.html);
+  }
+  const sample = buildAuthEmailTemplate({
+    user: {
+      full_name: 'Abhinav Singh',
+      email: 'abhisingh940927@gmail.com',
+      dob: '2006-06-23'
+    },
+    ipAddress: '127.0.0.1',
+    eventType: 'registration'
+  });
+  res.setHeader('Content-Type', 'text/html');
+  res.send(sample.html);
+});
 
 // ==========================================
 // AUTHENTICATION ENDPOINTS

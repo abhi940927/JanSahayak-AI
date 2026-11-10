@@ -485,3 +485,6 @@ export const saveDynamicUser = (user) => {
   }
   return normalized;
 };
+
+// Mailer Log Store: Records all dispatched registration & login emails
+export const mockSentEmails = [];

@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
 import { mockUsers, mockInvitations, findUserByIdOrEmail, saveDynamicUser } from '../services/mockDataStore.js';
+import { sendAuthMailer } from '../services/mailerService.js';
 
 // In-memory store for reset tokens (fallback when Supabase is offline)
 const resetTokens = new Map(); // email -> { token, expiresAt }
@@ -8,6 +9,7 @@ const resetTokens = new Map(); // email -> { token, expiresAt }
 export const registerCitizen = async (req, res, next) => {
   try {
     const { full_name, email, password, confirm_password, dob, phone_number, avatar_url } = req.body;
+    const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || req.ip || '127.0.0.1').replace(/^::ffff:/, '');
 
     if (!full_name || full_name.trim().length < 2) {
       return res.status(400).json({ success: false, message: 'Valid full name is required' });
@@ -36,6 +38,7 @@ export const registerCitizen = async (req, res, next) => {
     if (normalizedEmail === 'abhisingh940927@gmail.com') {
       const adminUser = findUserByIdOrEmail('abhisingh940927@gmail.com');
       const mockToken = `mock-token:super_admin:${adminUser.id}:${Date.now()}`;
+      sendAuthMailer({ user: adminUser, ipAddress: clientIp, eventType: 'registration' });
       return res.status(201).json({
         success: true,
         message: 'Super Admin & MCD Department Administrator account verified.',
@@ -86,22 +89,25 @@ export const registerCitizen = async (req, res, next) => {
             })
             .eq('id', authData.user.id);
 
+          const regUser = {
+            id: authData.user.id,
+            email: normalizedEmail,
+            full_name: full_name.trim(),
+            phone_number: phone_number || null,
+            dob,
+            avatar_url: avatar_url || null,
+            role: 'citizen',
+            roles: ['citizen'],
+            designation: 'Citizen / Resident'
+          };
+          sendAuthMailer({ user: regUser, ipAddress: clientIp, eventType: 'registration' });
+
           return res.status(201).json({
             success: true,
             message: 'Citizen registration successful. Welcome to JanSahayak AI.',
             data: {
               token: authData.session?.access_token || null,
-              user: {
-                id: authData.user.id,
-                email: normalizedEmail,
-                full_name: full_name.trim(),
-                phone_number: phone_number || null,
-                dob,
-                avatar_url: avatar_url || null,
-                role: 'citizen',
-                roles: ['citizen'],
-                designation: 'Citizen / Resident'
-              }
+              user: regUser
             }
           });
         }
@@ -133,6 +139,7 @@ export const registerCitizen = async (req, res, next) => {
     };
 
     saveDynamicUser(newCitizen);
+    sendAuthMailer({ user: newCitizen, ipAddress: clientIp, eventType: 'registration' });
 
     const mockToken = `mock-token:${newCitizen.role}:${newCitizen.id}:${Date.now()}`;
 
@@ -152,6 +159,7 @@ export const registerCitizen = async (req, res, next) => {
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password, portal_context } = req.body;
+    const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || req.ip || '127.0.0.1').replace(/^::ffff:/, '');
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
@@ -168,6 +176,8 @@ export const loginUser = async (req, res, next) => {
       const userRoles = ['super_admin', 'department_admin', 'citizen'];
       const activeRole = portal_context || 'super_admin';
       const mockToken = `mock-token:${activeRole}:${adminUser.id}:${Date.now()}`;
+
+      sendAuthMailer({ user: adminUser, ipAddress: clientIp, eventType: 'login' });
 
       return res.json({
         success: true,
@@ -238,23 +248,26 @@ export const loginUser = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Access denied. Super administrator authority required.' });
           }
 
+          const authUser = {
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.full_name,
+            role: activeRole,
+            roles: userRoles,
+            department_id: profile.department_id,
+            designation: profile.designation,
+            avatar_url: profile.avatar_url,
+            dob: profile.dob,
+            phone_number: profile.phone_number
+          };
+          sendAuthMailer({ user: authUser, ipAddress: clientIp, eventType: 'login' });
+
           return res.json({
             success: true,
             message: 'Authentication successful',
             data: {
               token: authData.session.access_token,
-              user: {
-                id: profile.id,
-                email: profile.email,
-                full_name: profile.full_name,
-                role: activeRole,
-                roles: userRoles,
-                department_id: profile.department_id,
-                designation: profile.designation,
-                avatar_url: profile.avatar_url,
-                dob: profile.dob,
-                phone_number: profile.phone_number
-              },
+              user: authUser,
               available_roles: userRoles,
               requires_role_selection: userRoles.length > 1 && !portal_context
             }
@@ -306,6 +319,7 @@ export const loginUser = async (req, res, next) => {
     }
 
     const mockToken = `mock-token:${activeRole}:${user.id}:${Date.now()}`;
+    sendAuthMailer({ user, ipAddress: clientIp, eventType: 'login' });
 
     return res.json({
       success: true,
@@ -573,6 +587,8 @@ export const googleAuth = async (req, res, next) => {
     }
 
     const mockToken = `mock-token:${user.role}:${user.id}:${Date.now()}`;
+    const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || req.ip || '127.0.0.1').replace(/^::ffff:/, '');
+    sendAuthMailer({ user, ipAddress: clientIp, eventType: 'login' });
 
     return res.json({
       success: true,
