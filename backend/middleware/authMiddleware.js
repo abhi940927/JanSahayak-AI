@@ -1,0 +1,68 @@
+import { supabase, isSupabaseConfigured } from '../config/supabase.js';
+import { mockUsers } from '../services/mockDataStore.js';
+
+export const authenticateUser = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Handle dev / mock fallback mode
+    if (!isSupabaseConfigured || !authHeader) {
+      // Default to demo citizen or read role from header
+      const requestedRole = req.headers['x-demo-role'] || 'citizen';
+      const matchedUser = mockUsers.find(u => u.role === requestedRole) || mockUsers[0];
+      req.user = matchedUser;
+      return next();
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Authentication token missing' });
+    }
+
+    // Verify token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired session' });
+    }
+
+    // Retrieve database profile with role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return res.status(403).json({ success: false, message: 'User profile not found in database' });
+    }
+
+    if (!profile.is_active) {
+      return res.status(403).json({ success: false, message: 'User account has been deactivated' });
+    }
+
+    req.user = profile;
+    next();
+  } catch (err) {
+    console.error('[Auth Middleware Error]:', err);
+    return res.status(500).json({ success: false, message: 'Internal authentication error' });
+  }
+};
+
+export const requireRole = (allowedRoles = []) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden. Role '${req.user.role}' lacks permission to perform this action.`
+      });
+    }
+
+    next();
+  };
+};
