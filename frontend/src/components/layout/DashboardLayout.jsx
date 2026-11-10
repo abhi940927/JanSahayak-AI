@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { BrandLogo } from '../common/BrandLogo';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -95,14 +96,7 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
             >
               {mobileSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-9 h-9 rounded-lg bg-gov-navy-900 flex items-center justify-center text-gov-teal-500 shadow-sm">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <span className="font-extrabold text-gov-navy-900 tracking-tight text-lg">
-                JanSahayak <span className="text-gov-teal-600 text-xs px-2 py-0.5 rounded bg-gov-teal-50 border border-gov-teal-200">AI</span>
-              </span>
-            </Link>
+            <BrandLogo size="sm" showTagline={false} linkTo="/" />
           </div>
 
           {/* Right Header items */}
@@ -277,12 +271,7 @@ export const DashboardLayout = ({ children, title, subtitle }) => {
           <div className="relative w-72 max-w-[85vw] bg-white h-full shadow-2xl p-5 flex flex-col justify-between z-10 animate-in slide-in-from-left">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-lg bg-gov-navy-900 text-gov-teal-400 flex items-center justify-center font-bold">
-                    <ShieldAlert className="w-5 h-5" />
-                  </div>
-                  <span className="font-extrabold text-gov-navy-900 text-base">JanSahayak AI</span>
-                </div>
+                <BrandLogo size="sm" showTagline={false} linkTo="/" />
                 <button
                   onClick={() => setMobileSidebarOpen(false)}
                   className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"

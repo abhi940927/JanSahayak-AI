@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { BrandLogo } from '../common/BrandLogo';
 import {
   ShieldAlert,
   Search,
@@ -155,97 +156,7 @@ export const Navbar = () => {
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link
-          to="/"
-          className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F9488] rounded-lg py-1"
-          aria-label="JanSahayak AI Home"
-        >
-          {/* Modern Government-Grade Vector Emblem */}
-          <div className="relative shrink-0 group-hover:scale-105 transition-transform duration-200">
-            <svg
-              viewBox="0 0 40 40"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-10 h-10 drop-shadow-sm"
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient id="navLogoShieldGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#0B1730" />
-                  <stop offset="100%" stopColor="#122440" />
-                </linearGradient>
-                <linearGradient id="navLogoTealGrad" x1="10" y1="6" x2="30" y2="34" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#2DD4BF" />
-                  <stop offset="100%" stopColor="#0F9488" />
-                </linearGradient>
-                <linearGradient id="navLogoGlow" x1="20" y1="8" x2="20" y2="32" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#0F9488" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-
-              {/* Protective Shield Base */}
-              <path
-                d="M20 2.5C28 5.5 35.5 5 35.5 12C35.5 24 27 34.5 20 38.5C13 34.5 4.5 24 4.5 12C4.5 5 12 5.5 20 2.5Z"
-                fill="url(#navLogoShieldGrad)"
-                stroke="#1E3A5F"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-
-              {/* Inner Subtle Contour */}
-              <path
-                d="M20 5C26.5 7.5 32.5 7 32.5 13C32.5 22.5 25.5 31 20 35C14.5 31 7.5 22.5 7.5 13C7.5 7 13.5 7.5 20 5Z"
-                fill="url(#navLogoGlow)"
-                stroke="url(#navLogoTealGrad)"
-                strokeWidth="0.8"
-                strokeOpacity="0.4"
-              />
-
-              {/* Citizen Care Supportive Arch (Public Service & Support) */}
-              <path
-                d="M13.5 25C13.5 19 16.5 15.5 20 15.5C23.5 15.5 26.5 19 26.5 25"
-                stroke="white"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-
-              {/* Central Civic Pillar */}
-              <path
-                d="M20 17.5V28"
-                stroke="url(#navLogoTealGrad)"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-
-              {/* Neural AI Innovation Star (Intelligent Assistance) */}
-              <path
-                d="M20 8.5L21.3 11.7L24.5 13L21.3 14.3L20 17.5L18.7 14.3L15.5 13L18.7 11.7L20 8.5Z"
-                fill="url(#navLogoTealGrad)"
-              />
-
-              {/* Interconnected Civic Data Nodes */}
-              <circle cx="13.5" cy="25" r="1.8" fill="#2DD4BF" />
-              <circle cx="26.5" cy="25" r="1.8" fill="#2DD4BF" />
-              <circle cx="20" cy="28" r="1.8" fill="white" />
-            </svg>
-          </div>
-
-          {/* Typography & Brand Hierarchy */}
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-1.5 leading-none">
-              <span className="text-[19px] font-black text-[#0B1730] tracking-tight group-hover:text-[#0F9488] transition-colors">
-                JanSahayak
-              </span>
-              <span className="inline-flex items-center justify-center bg-gradient-to-r from-[#0F9488] to-[#14B8A6] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs tracking-wider uppercase">
-                AI
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-1">
-              Smart Grievance Redressal Platform
-            </div>
-          </div>
-        </Link>
+        <BrandLogo size="md" showTagline={true} linkTo="/" />
 
         {/* Desktop Links */}
         <nav className="hidden md:flex items-center space-x-1 lg:space-x-2" aria-label="Main Navigation">

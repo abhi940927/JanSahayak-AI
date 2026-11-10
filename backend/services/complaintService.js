@@ -398,6 +398,13 @@ export class ComplaintService {
     }
 
     // Mock update
+    const targetInStore = mockComplaints.find(c => c.id === complaint.id || c.tracking_number === complaint.tracking_number);
+    if (targetInStore) {
+      targetInStore.status = status;
+      targetInStore.updated_at = new Date().toISOString();
+      if (status === 'resolved') targetInStore.resolved_at = new Date().toISOString();
+      if (status === 'closed') targetInStore.closed_at = new Date().toISOString();
+    }
     complaint.status = status;
     complaint.updated_at = new Date().toISOString();
     if (status === 'resolved') complaint.resolved_at = new Date().toISOString();

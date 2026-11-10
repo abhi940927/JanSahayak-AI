@@ -41,6 +41,8 @@ export const ComplaintDetail = () => {
   const [newStatus, setNewStatus] = useState('');
   const [statusRemarks, setStatusRemarks] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  const [statusSuccess, setStatusSuccess] = useState('');
 
   // Citizen feedback state
   const [rating, setRating] = useState(5);
@@ -52,6 +54,18 @@ export const ComplaintDetail = () => {
     fetchComplaint();
   }, [id, role]);
 
+  const getNextRecommendedStatus = (current) => {
+    switch ((current || 'submitted').toLowerCase()) {
+      case 'submitted': return 'verified';
+      case 'verified': return 'assigned';
+      case 'assigned': return 'in_progress';
+      case 'in_progress':
+      case 'under_review': return 'resolved';
+      case 'resolved': return 'closed';
+      default: return 'in_progress';
+    }
+  };
+
   const fetchComplaint = async () => {
     try {
       setLoading(true);
@@ -59,7 +73,8 @@ export const ComplaintDetail = () => {
       const res = await api.get(`/complaints/${id}`);
       if (res.success && res.data) {
         setComplaint(res.data);
-        setNewStatus(res.data.status);
+        const nextStatus = getNextRecommendedStatus(res.data.status);
+        setNewStatus(nextStatus);
         if (res.data.feedback) {
           setFeedbackSubmitted(true);
           setRating(res.data.feedback.rating);
@@ -89,23 +104,41 @@ export const ComplaintDetail = () => {
 
   const handleUpdateStatus = async (e) => {
     e.preventDefault();
-    if (!statusRemarks) {
-      alert('Remarks are required when updating status');
+    setStatusError('');
+    setStatusSuccess('');
+    const targetStatus = newStatus || getNextRecommendedStatus(complaint?.status);
+    if (!statusRemarks.trim()) {
+      setStatusError('Inspection notes or remarks are required to transition status.');
       return;
     }
 
     try {
       setUpdatingStatus(true);
       const res = await api.patch(`/complaints/${complaint.id}/status`, {
-        status: newStatus,
-        remarks: statusRemarks
+        status: targetStatus,
+        remarks: statusRemarks.trim()
       });
       if (res.success) {
         setStatusRemarks('');
+        setStatusSuccess(`Status successfully transitioned to ${targetStatus.replace(/_/g, ' ').toUpperCase()}`);
+        // Eagerly update local complaint state so UI and Stepper advance immediately
+        setComplaint(prev => ({
+          ...prev,
+          status: targetStatus,
+          history: [
+            ...(prev.history || []),
+            {
+              id: Date.now().toString(),
+              action: `Status changed to ${targetStatus}`,
+              remarks: statusRemarks.trim(),
+              created_at: new Date().toISOString()
+            }
+          ]
+        }));
         await fetchComplaint();
       }
     } catch (err) {
-      alert(err.message || 'Failed to update status');
+      setStatusError(err.message || 'Failed to update status');
     } finally {
       setUpdatingStatus(false);
     }
@@ -275,6 +308,20 @@ export const ComplaintDetail = () => {
                 Authorized government officer status transition panel. Every change is immutably recorded in the grievance audit history.
               </p>
 
+              {statusError && (
+                <div className="p-3 bg-rose-900/40 border border-rose-500/50 rounded-xl text-xs text-rose-200 flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>{statusError}</span>
+                </div>
+              )}
+
+              {statusSuccess && (
+                <div className="p-3 bg-emerald-900/40 border border-emerald-500/50 rounded-xl text-xs text-emerald-200 flex items-center space-x-2">
+                  <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>{statusSuccess}</span>
+                </div>
+              )}
+
               <form onSubmit={handleUpdateStatus} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
@@ -285,13 +332,13 @@ export const ComplaintDetail = () => {
                     onChange={(e) => setNewStatus(e.target.value)}
                     className="w-full bg-gov-navy-800 border border-slate-700 text-white text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-gov-teal-400"
                   >
-                    <option value="verified">Mark as Verified</option>
-                    <option value="assigned">Assign Field Team</option>
-                    <option value="in_progress">Mark as In Progress</option>
-                    <option value="under_review">Mark Under Review</option>
-                    <option value="resolved">Mark Resolved (Evidence)</option>
-                    <option value="closed">Close Grievance</option>
-                    <option value="rejected">Reject (Requires reason)</option>
+                    <option value="verified">Stage 2: Mark as Verified & Categorized</option>
+                    <option value="assigned">Stage 3: Assign Field Team / Officer</option>
+                    <option value="in_progress">Stage 4: Mark as In Progress (Field Action)</option>
+                    <option value="under_review">Stage 4: Mark Under Technical Review</option>
+                    <option value="resolved">Stage 5: Mark Resolved (Field Work Complete)</option>
+                    <option value="closed">Stage 5: Close Grievance (Citizen Accepted)</option>
+                    <option value="rejected">Reject Grievance (Non-Compliant)</option>
                   </select>
                 </div>
 
