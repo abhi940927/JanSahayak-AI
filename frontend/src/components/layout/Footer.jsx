@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BrandLogo } from '../common/BrandLogo';
 import {
   ShieldAlert,
   Globe,
@@ -48,17 +49,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* COLUMN 1 – BRAND & MISSION */}
           <div className="space-y-2.5">
-            <Link to="/" className="inline-flex items-center space-x-2 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F9488] rounded-lg">
-              <div className="w-8 h-8 rounded-lg bg-[#0F9488]/15 border border-[#0F9488]/40 flex items-center justify-center text-[#2DD4BF] shadow-xs group-hover:scale-105 transition-transform">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-lg font-extrabold text-white tracking-tight">JanSahayak</span>
-                <span className="text-[10px] font-bold text-[#2DD4BF] bg-[#0F9488]/20 px-1.5 py-0.5 rounded-full border border-[#0F9488]/50">
-                  AI
-                </span>
-              </div>
-            </Link>
+            <BrandLogo size="md" theme="dark" showTagline={false} linkTo="/" />
 
             <p className="text-xs text-slate-300 leading-relaxed font-normal">
               Making public grievance redressal simpler, smarter, and more transparent through technology.

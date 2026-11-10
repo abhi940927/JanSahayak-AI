@@ -4,9 +4,12 @@ import { Link } from 'react-router-dom';
 export const BrandLogo = ({
   size = 'md',
   showTagline = true,
+  theme = 'light',
   linkTo = '/',
   className = ''
 }) => {
+  const isDark = theme === 'dark';
+
   const iconSizeClasses = {
     sm: 'w-8 h-8',
     md: 'w-9 h-9 sm:w-10 sm:h-10',
@@ -49,8 +52,9 @@ export const BrandLogo = ({
           <path
             d="M20 2.5C28 5.5 35.5 5 35.5 12C35.5 24 27 34.5 20 38.5C13 34.5 4.5 24 4.5 12C4.5 5 12 5.5 20 2.5Z"
             fill="url(#brandShieldGrad)"
-            stroke="#1E3A5F"
-            strokeWidth="1.5"
+            stroke={isDark ? '#2DD4BF' : '#1E3A5F'}
+            strokeWidth={isDark ? '1.8' : '1.5'}
+            strokeOpacity={isDark ? '0.7' : '1'}
             strokeLinejoin="round"
           />
 
@@ -95,7 +99,11 @@ export const BrandLogo = ({
       {/* Typography & Brand Hierarchy */}
       <div className="flex flex-col justify-center">
         <div className="flex items-center gap-1.5 leading-none">
-          <span className={`${textClasses} font-black text-[#0B1730] tracking-tight group-hover:text-[#0F9488] transition-colors`}>
+          <span
+            className={`${textClasses} font-black tracking-tight transition-colors ${
+              isDark ? 'text-white group-hover:text-[#2DD4BF]' : 'text-[#0B1730] group-hover:text-[#0F9488]'
+            }`}
+          >
             JanSahayak
           </span>
           <span className="inline-flex items-center justify-center bg-gradient-to-r from-[#0F9488] to-[#14B8A6] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs tracking-wider uppercase">
@@ -103,7 +111,11 @@ export const BrandLogo = ({
           </span>
         </div>
         {showTagline && (
-          <div className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-1">
+          <div
+            className={`text-[10px] font-semibold tracking-wider uppercase mt-1 ${
+              isDark ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
             Smart Grievance Redressal Platform
           </div>
         )}

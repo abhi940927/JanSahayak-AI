@@ -65,7 +65,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       {!isDashboardRoute && <Navbar />}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import {
   ShieldAlert,
   LogIn,
@@ -88,16 +89,16 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
       <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-gov-navy-900 text-gov-teal-500 mx-auto flex items-center justify-center shadow-md">
-            <ShieldAlert className="w-6 h-6" />
+        <div className="text-center space-y-3">
+          <div className="flex justify-center mb-1">
+            <BrandLogo size="md" showTagline={false} linkTo="/" />
           </div>
-          <h1 className="text-2xl font-extrabold text-gov-navy-900 tracking-tight">
+          <h1 className="text-2xl font-black text-gov-navy-900 tracking-tight">
             Sign In to JanSahayak
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 font-medium">
             Citizen & Government Officer Unified Digital Service Portal
           </p>
         </div>

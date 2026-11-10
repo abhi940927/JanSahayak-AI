@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import {
   ShieldAlert,
   UserPlus,
@@ -129,16 +130,16 @@ export const Register = () => {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
+    <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
       <div className="max-w-lg w-full bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-gov-teal-600 text-white mx-auto flex items-center justify-center shadow-md">
-            <UserPlus className="w-6 h-6" />
+        <div className="text-center space-y-3">
+          <div className="flex justify-center mb-1">
+            <BrandLogo size="md" showTagline={false} linkTo="/" />
           </div>
-          <h1 className="text-2xl font-extrabold text-gov-navy-900 tracking-tight">
+          <h1 className="text-2xl font-black text-gov-navy-900 tracking-tight">
             Citizen Registration
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 font-medium">
             Create your official citizen account to file, track and manage public grievances
           </p>
         </div>
