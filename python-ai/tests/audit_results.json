@@ -1,0 +1,52 @@
+[
+  {
+    "test": "AI Health Check",
+    "status": "PASS",
+    "details": "Status 200, features: 5"
+  },
+  {
+    "test": "AI Classify - English (PWD)",
+    "status": "PASS",
+    "details": "Predicted PWD (conf: 0.5184)"
+  },
+  {
+    "test": "AI Classify - Hindi Language Detection",
+    "status": "PASS",
+    "details": "Detected lang: hi, Pred: HFW"
+  },
+  {
+    "test": "AI Classify - Punjabi Language Detection",
+    "status": "PASS",
+    "details": "Detected lang: pa, Pred: HFW"
+  },
+  {
+    "test": "AI Priority - Critical Hazard Detection",
+    "status": "PASS",
+    "details": "Priority: critical, SLA: 12h"
+  },
+  {
+    "test": "AI Priority - Routine Grievance",
+    "status": "PASS",
+    "details": "Priority: medium"
+  },
+  {
+    "test": "AI Duplicate Detection - Text & GPS Matching",
+    "status": "PASS",
+    "details": "Detected match JS-2026-11111 (dist: 29.6m, sim: 0.7633)"
+  },
+  {
+    "test": "AI Summarizer - Structured Output",
+    "status": "PASS",
+    "details": "Action: Dispatch water/drainage maintenance crew for inspe... (is_llm: False)"
+  },
+  {
+    "test": "AI Translate - Devanagari Script Handling",
+    "status": "PASS",
+    "details": "Detected: hi, Preserved original text: True"
+  },
+  {
+    "test": "AI Validation - Short Input Rejection (422)",
+    "status": "PASS",
+    "details": "Pydantic rejected invalid short title/description"
+  }
+]

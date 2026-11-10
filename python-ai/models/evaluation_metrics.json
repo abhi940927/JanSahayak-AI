@@ -1,0 +1,138 @@
+{
+  "dataset_size": 120,
+  "train_samples": 96,
+  "test_samples": 24,
+  "departments": [
+    "DJB",
+    "EPD",
+    "HFW",
+    "MCD",
+    "PWD",
+    "TPD"
+  ],
+  "department_distribution": {
+    "PWD": 20,
+    "DJB": 20,
+    "EPD": 20,
+    "MCD": 20,
+    "TPD": 20,
+    "HFW": 20
+  },
+  "baseline_model": {
+    "name": "JanSahayak-Tfidf-LogReg-v1",
+    "accuracy": 0.75,
+    "macro_precision": 0.7936507936507936,
+    "macro_recall": 0.75,
+    "macro_f1": 0.7575757575757575,
+    "weighted_f1": 0.7575757575757575
+  },
+  "improved_model": {
+    "name": "JanSahayak-Tfidf-Sublinear-LogReg-v2",
+    "accuracy": 0.625,
+    "macro_precision": 0.6180555555555556,
+    "macro_recall": 0.625,
+    "macro_f1": 0.6071428571428571,
+    "weighted_f1": 0.6071428571428571
+  },
+  "classification_report": {
+    "DJB": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4.0
+    },
+    "EPD": {
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1-score": 0.8571428571428571,
+      "support": 4.0
+    },
+    "HFW": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4.0
+    },
+    "MCD": {
+      "precision": 0.3333333333333333,
+      "recall": 0.25,
+      "f1-score": 0.2857142857142857,
+      "support": 4.0
+    },
+    "PWD": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 4.0
+    },
+    "TPD": {
+      "precision": 0.375,
+      "recall": 0.75,
+      "f1-score": 0.5,
+      "support": 4.0
+    },
+    "accuracy": 0.625,
+    "macro avg": {
+      "precision": 0.6180555555555556,
+      "recall": 0.625,
+      "f1-score": 0.6071428571428571,
+      "support": 24.0
+    },
+    "weighted avg": {
+      "precision": 0.6180555555555556,
+      "recall": 0.625,
+      "f1-score": 0.6071428571428571,
+      "support": 24.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      4,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      4,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      1,
+      2
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      0,
+      3
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      0,
+      3
+    ]
+  ]
+}

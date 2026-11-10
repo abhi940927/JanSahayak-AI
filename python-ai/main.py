@@ -72,8 +72,8 @@ def health_check():
     return {
         "status": "healthy",
         "service": "JanSahayak AI Microservice",
-        "model": "JanSahayak-Tfidf-LogReg-v1",
-        "version": "1.0.0",
+        "model": classifier.model_name,
+        "version": classifier.model_version,
         "features": [
             "Civic Complaint Categorization",
             "Urgency & Priority Recommendation",
@@ -86,9 +86,10 @@ def health_check():
 @app.post("/api/ai/classify")
 def classify_complaint(req: ClassifyRequest):
     combined = f"{req.title} {req.description}"
-    lang = detect_language(combined)
+    lang_info = detect_language(combined)
     pred = classifier.predict(combined)
-    pred["detected_language"] = lang
+    pred["detected_language"] = lang_info.get("language_code", "en") if isinstance(lang_info, dict) else lang_info
+    pred["language_details"] = lang_info if isinstance(lang_info, dict) else {"language_code": lang_info}
     return pred
 
 @app.post("/api/ai/priority")
