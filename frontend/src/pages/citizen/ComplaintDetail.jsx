@@ -209,6 +209,34 @@ export const ComplaintDetail = () => {
             </div>
           </div>
 
+          {/* AI Duplicate Advisory Banner (if duplicate candidates detected) */}
+          {complaint.duplicate_matches && complaint.duplicate_matches.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
+              <div className="flex items-center space-x-2 text-amber-800 font-bold text-sm">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>AI Duplicate Advisory: {complaint.duplicate_matches.length} Nearby Similar Grievance(s) Identified</span>
+              </div>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                JanSahayak AI's semantic and spatial analysis detected potential overlapping complaints filed in this vicinity. Under governance policy, complaints remain independent and are flagged for investigating officer reference.
+              </p>
+              <div className="space-y-2 pt-1">
+                {complaint.duplicate_matches.map((dup, i) => (
+                  <div key={i} className="bg-white/90 p-3 rounded-xl border border-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1 shadow-2xs">
+                    <div>
+                      <span className="font-mono font-bold text-gov-navy-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {dup.tracking_number}
+                      </span>
+                      <span className="font-semibold text-slate-800 ml-2">{dup.title}</span>
+                    </div>
+                    <div className="text-[11px] text-amber-800 font-bold whitespace-nowrap">
+                      {dup.distance_meters ? `${dup.distance_meters}m away` : 'Overlapping zone'} • {(dup.similarity_score * 100).toFixed(0)}% similarity match
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* AI Intelligence Briefing Panel */}
           {aiSummary && (
             <div className="bg-gradient-to-r from-gov-navy-900 to-slate-900 text-white rounded-2xl p-6 shadow-sm border border-slate-800 space-y-3">

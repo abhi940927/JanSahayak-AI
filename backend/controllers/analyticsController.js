@@ -50,8 +50,14 @@ export const getAdminAnalytics = async (req, res, next) => {
       complaints = cData || [];
       departments = dData || [];
     } else {
-      complaints = mockComplaints;
-      departments = mockDepartments;
+      complaints = [...mockComplaints];
+      departments = [...mockDepartments];
+    }
+
+    // If department admin, scope strictly to their department jurisdiction
+    if (req.user.role === 'department_admin' && req.user.department_id) {
+      complaints = complaints.filter(c => c.department_id === req.user.department_id);
+      departments = departments.filter(d => d.id === req.user.department_id);
     }
 
     const total = complaints.length;

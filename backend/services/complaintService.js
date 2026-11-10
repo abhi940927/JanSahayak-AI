@@ -26,43 +26,76 @@ export class ComplaintService {
    * Request AI predictions (Classification & Priority) with graceful fallback
    */
   static async requestAIPredictions(title, description) {
-    try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/ai/classify`, {
-        title,
-        description
-      }, { timeout: 3500 });
-      return response.data;
-    } catch (err) {
-      // Robust transparent fallback
-      const text = `${title} ${description}`.toLowerCase();
-      let deptCode = 'MCD';
-      let priority = 'medium';
+    let deptCode = 'MCD';
+    let confidence = 0.85;
+    let modelName = 'JanSahayak-Tfidf-LogReg-v1';
+    let modelVersion = '1.0.0';
+    let priority = 'medium';
+    let slaHours = 48;
 
-      if (text.includes('water') || text.includes('drain') || text.includes('sewage') || text.includes('tap') || text.includes('drinking')) {
-        deptCode = 'DJB';
-        if (text.includes('contam') || text.includes('toxic') || text.includes('burst')) priority = 'critical';
-      } else if (text.includes('electric') || text.includes('power') || text.includes('wire') || text.includes('spark') || text.includes('shock') || text.includes('current')) {
-        deptCode = 'EPD';
-        if (text.includes('spark') || text.includes('wire') || text.includes('fire')) priority = 'critical';
-      } else if (text.includes('road') || text.includes('pothole') || text.includes('flyover') || text.includes('bridge') || text.includes('traffic')) {
-        deptCode = text.includes('traffic') ? 'TPD' : 'PWD';
-        if (text.includes('accident') || text.includes('crater') || text.includes('collapse')) priority = 'high';
-      } else if (text.includes('hospital') || text.includes('doctor') || text.includes('clinic') || text.includes('medicine') || text.includes('fever') || text.includes('dengue')) {
-        deptCode = 'HFW';
-      } else if (text.includes('garbage') || text.includes('waste') || text.includes('trash') || text.includes('sanitation') || text.includes('clean')) {
-        deptCode = 'MCD';
+    try {
+      // Parallel fetch from AI classification and priority endpoints
+      const [classifyRes, priorityRes] = await Promise.allSettled([
+        axios.post(`${AI_SERVICE_URL}/api/ai/classify`, { title, description }, { timeout: 3500 }),
+        axios.post(`${AI_SERVICE_URL}/api/ai/priority`, { title, description }, { timeout: 3500 })
+      ]);
+
+      if (classifyRes.status === 'fulfilled' && classifyRes.value?.data) {
+        deptCode = classifyRes.value.data.predicted_department || 'MCD';
+        confidence = classifyRes.value.data.confidence_score || 0.85;
+        modelName = classifyRes.value.data.model_name || modelName;
+        modelVersion = classifyRes.value.data.model_version || modelVersion;
       }
 
-      const matchedDept = mockDepartments.find(d => d.code === deptCode) || mockDepartments[0];
-      return {
-        predicted_department_code: deptCode,
-        predicted_department_id: matchedDept.id,
-        confidence_score: 0.88,
-        predicted_priority: priority,
-        model_name: 'JanSahayak-Heuristic-Rule-Engine',
-        model_version: '1.0.0-fallback'
-      };
+      if (priorityRes.status === 'fulfilled' && priorityRes.value?.data) {
+        priority = priorityRes.value.data.recommended_priority || 'medium';
+        slaHours = priorityRes.value.data.sla_recommended_hours || 48;
+      }
+    } catch (err) {
+      console.warn('[AI Service Warning]: Failed calling microservice, using rule fallback:', err.message);
     }
+
+    // Fallback heuristic if classify returned generic MCD
+    if (!deptCode || deptCode === 'MCD') {
+      const text = `${title} ${description}`.toLowerCase();
+      if (text.includes('water') || text.includes('drain') || text.includes('sewage') || text.includes('tap') || text.includes('drinking')) {
+        deptCode = 'DJB';
+        if (text.includes('contam') || text.includes('toxic') || text.includes('burst')) {
+          priority = 'critical';
+          slaHours = 12;
+        }
+      } else if (text.includes('electric') || text.includes('power') || text.includes('wire') || text.includes('spark') || text.includes('shock') || text.includes('current')) {
+        deptCode = 'EPD';
+        if (text.includes('spark') || text.includes('wire') || text.includes('fire')) {
+          priority = 'critical';
+          slaHours = 12;
+        }
+      } else if (text.includes('road') || text.includes('pothole') || text.includes('flyover') || text.includes('bridge') || text.includes('traffic')) {
+        deptCode = text.includes('traffic') ? 'TPD' : 'PWD';
+        if (text.includes('accident') || text.includes('crater') || text.includes('collapse')) {
+          priority = 'high';
+          slaHours = 24;
+        }
+      } else if (text.includes('hospital') || text.includes('doctor') || text.includes('clinic') || text.includes('medicine') || text.includes('fever') || text.includes('dengue')) {
+        deptCode = 'HFW';
+      }
+    }
+
+    let matchedDept = mockDepartments.find(d => d.code === deptCode) || mockDepartments[0];
+    if (isSupabaseConfigured) {
+      const { data: dbDept } = await supabase.from('departments').select('id, code').eq('code', deptCode).single();
+      if (dbDept) matchedDept = dbDept;
+    }
+
+    return {
+      predicted_department_code: deptCode,
+      predicted_department_id: matchedDept.id,
+      confidence_score: confidence,
+      predicted_priority: priority,
+      sla_recommended_hours: slaHours,
+      model_name: modelName,
+      model_version: modelVersion
+    };
   }
 
   /**
@@ -76,6 +109,7 @@ export class ComplaintService {
 
     const departmentId = data.department_id || aiPrediction.predicted_department_id;
     const priority = data.priority || aiPrediction.predicted_priority || 'medium';
+    const slaHours = aiPrediction.sla_recommended_hours || 48;
 
     const newComplaint = {
       id: uuidv4(),
@@ -96,10 +130,45 @@ export class ComplaintService {
       pincode: data.pincode || null,
       latitude: data.latitude || null,
       longitude: data.longitude || null,
-      sla_due_at: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
+      sla_due_at: new Date(Date.now() + slaHours * 3600 * 1000).toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    // Scan for potential duplicate candidates using AI microservice
+    let duplicateMatches = [];
+    try {
+      const candidates = mockComplaints.slice(0, 25).map(c => ({
+        id: c.id,
+        tracking_number: c.tracking_number,
+        title: c.title,
+        description: c.description,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        status: c.status
+      }));
+
+      const dupRes = await axios.post(`${AI_SERVICE_URL}/api/ai/duplicates`, {
+        target_complaint: {
+          id: newComplaint.id,
+          title: newComplaint.title,
+          description: newComplaint.description,
+          latitude: newComplaint.latitude,
+          longitude: newComplaint.longitude
+        },
+        candidate_complaints: candidates,
+        similarity_threshold: 0.60,
+        distance_threshold_meters: 1000.0
+      }, { timeout: 3000 });
+
+      if (dupRes.data && dupRes.data.duplicates) {
+        duplicateMatches = dupRes.data.duplicates;
+      }
+    } catch (dupErr) {
+      // Non-blocking duplicate scan
+    }
+
+    newComplaint.duplicate_matches = duplicateMatches;
 
     if (isSupabaseConfigured) {
       const { data: inserted, error } = await supabase
@@ -286,7 +355,8 @@ export class ComplaintService {
       department: mockDepartments.find(d => d.id === complaint.department_id) || null,
       category: mockCategories.find(cat => cat.id === complaint.category_id) || null,
       citizen: mockUsers.find(u => u.id === complaint.citizen_id) || null,
-      history: mockHistory.filter(h => h.complaint_id === complaint.id)
+      history: mockHistory.filter(h => h.complaint_id === complaint.id),
+      duplicate_matches: complaint.duplicate_matches || []
     };
   }
 

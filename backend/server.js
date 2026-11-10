@@ -10,6 +10,7 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
 
@@ -27,6 +28,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
+
+// Rate Limiter: 150 requests per minute
+app.use('/api', rateLimiter(150, 60000));
 
 // System Health Endpoint
 app.get('/api/health', (req, res) => {
