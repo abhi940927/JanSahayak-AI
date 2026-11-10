@@ -1,24 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { Search, ShieldAlert, ArrowRight, Clock, AlertCircle } from 'lucide-react';
 import { StatusBadge, PriorityBadge } from '../../components/common/StatusBadge';
 import { ComplaintTimeline } from '../../components/complaints/ComplaintTimeline';
 
 export const TrackComplaint = () => {
-  const [trackingNumber, setTrackingNumber] = useState('');
+  const [searchParams] = useSearchParams();
+  const [trackingNumber, setTrackingNumber] = useState(searchParams.get('number') || '');
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!trackingNumber.trim()) return;
+  useEffect(() => {
+    const num = searchParams.get('number');
+    if (num && num.trim()) {
+      setTrackingNumber(num.trim());
+      executeLookup(num.trim());
+    }
+  }, [searchParams]);
 
+  const executeLookup = async (num) => {
     try {
       setLoading(true);
       setError('');
       setComplaint(null);
-      const res = await api.get(`/complaints/${trackingNumber.trim()}`);
+      const res = await api.get(`/complaints/${num.trim()}`);
       if (res.success && res.data) {
         setComplaint(res.data);
       }
@@ -27,6 +34,12 @@ export const TrackComplaint = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!trackingNumber.trim()) return;
+    executeLookup(trackingNumber);
   };
 
   return (

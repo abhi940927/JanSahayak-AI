@@ -148,8 +148,25 @@ export const OfficerDashboard = () => {
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
-                      No complaints in queue matching your criteria.
+                    <td colSpan={6} className="py-16 text-center">
+                      <div className="max-w-xs mx-auto space-y-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                          <ClipboardList className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-700">No Complaints In Active Queue</h4>
+                        <p className="text-xs text-slate-400">
+                          {filterPriority || search ? 'No grievances match your current search or priority filter.' : 'All assigned civic tasks for your jurisdiction are up to date.'}
+                        </p>
+                        {(filterPriority || search) && (
+                          <button
+                            type="button"
+                            onClick={() => { setSearch(''); setFilterPriority(''); }}
+                            className="mt-2 text-xs font-semibold text-gov-teal-700 hover:underline"
+                          >
+                            Reset filters
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (

@@ -7,7 +7,13 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(localStorage.getItem('jansahayak_demo_role') || 'citizen');
+  const [language, setLanguageState] = useState(localStorage.getItem('jansahayak_language') || 'en');
   const [loading, setLoading] = useState(true);
+
+  const setLanguage = (lang) => {
+    setLanguageState(lang);
+    localStorage.setItem('jansahayak_language', lang);
+  };
 
   useEffect(() => {
     loadUserProfile();
@@ -103,7 +109,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, login, register, logout, switchDemoRole }}>
+    <AuthContext.Provider value={{ user, role, loading, login, register, logout, switchDemoRole, language, setLanguage }}>
       {children}
     </AuthContext.Provider>
   );
