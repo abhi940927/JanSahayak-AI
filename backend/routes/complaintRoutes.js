@@ -14,6 +14,7 @@ const router = express.Router();
 
 // Geocoding and IP location helper endpoints (accessible before auth guard)
 router.get('/geo/reverse', reverseGeocodeLocation);
+router.get('/reverse-geocode', reverseGeocodeLocation);
 router.get('/geo/ip-lookup', ipLocationLookup);
 
 router.use(authenticateUser);

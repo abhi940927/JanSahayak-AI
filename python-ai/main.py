@@ -180,19 +180,20 @@ def chat_assistant(req: ChatRequest):
 
     if is_hindi:
         reply = (
-            f"मैंने आपकी नागरिक समस्या को समझ लिया है। 🔍\n\n"
-            f"• **लक्षित विभाग (Department):** {dept_name}\n"
-            f"• **शिकायत श्रेणी (Category):** {cat_name}\n"
-            f"• **प्राथमिकता (Priority):** {priority.upper()}\n\n"
-            f"मैंने आपकी शिकायत का ड्राफ्ट नीचे तैयार कर दिया है। आपको शिकायत फॉर्म भरने की जरूरत नहीं है—बस नीचे दिए गए **'तुरंत शिकायत दर्ज करें'** बटन पर क्लिक करें!"
+            f"मैंने आपकी नागरिक समस्या को **{dept_name}** के लिए चिन्हित कर लिया है। 🏛️\n\n"
+            f"• **लक्षित विभाग:** {dept_name} ({dept_code})\n"
+            f"• **शिकायत श्रेणी:** {cat_name}\n"
+            f"• **प्राथमिकता:** {priority.upper()}\n\n"
+            f"📍 **आवश्यक जानकारी:** कृपया नीचे कार्ड में अपना **घटना स्थल / GPS लोकेशन** दर्ज करें और यदि संभव हो तो **फोटो** जोड़ें।\n"
+            f"इसके बाद 'शिकायत दर्ज करें' पर क्लिक करते ही आपका **यूनिक ट्रैकिंग ID** तुरंत जारी हो जाएगा!"
         )
     else:
         reply = (
-            f"I have analyzed your civic grievance in real-time. 🔍\n\n"
+            f"I have identified your civic issue for **{dept_name}**. 🏛️\n\n"
             f"• **Target Department:** {dept_name} ({dept_code})\n"
-            f"• **Issue Category:** {cat_name}\n"
-            f"• **Assessed Urgency:** {priority.upper()}\n\n"
-            f"I have prepared your grievance card below. You do not need to fill out the form page—simply verify and click **'File Grievance Instantly'**!"
+            f"• **Category:** {cat_name}\n"
+            f"• **Assessed Priority:** {priority.upper()}\n\n"
+            f"📍 **Required Next Steps:** Please confirm your **Incident Location / GPS**, attach a site **Photo** if available, and submit below to instantly generate your **Unique Tracking ID**!"
         )
 
     return {

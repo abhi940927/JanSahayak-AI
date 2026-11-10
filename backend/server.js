@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import axios from 'axios';
 
 import complaintRoutes from './routes/complaintRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
@@ -11,6 +12,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
+import { processAIChat } from './services/aiChatService.js';
 
 dotenv.config();
 
@@ -46,14 +48,12 @@ app.get('/api/health', (req, res) => {
 app.post('/api/ai/chat', async (req, res) => {
   try {
     const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-    const response = await axios.post(`${aiUrl}/api/ai/chat`, req.body, { timeout: 8000 });
+    const response = await axios.post(`${aiUrl}/api/ai/chat`, req.body, { timeout: 3000 });
     return res.json(response.data);
   } catch (err) {
-    return res.json({
-      reply: "Namaste! I am currently processing your request. Please mention your issue details (e.g. road pothole, water leakage, power cut, garbage) and location.",
-      detected_language: "en",
-      grievance_draft: null
-    });
+    // High-performance in-process multilingual NLP engine fallback
+    const result = processAIChat(req.body.message);
+    return res.json(result);
   }
 });
 

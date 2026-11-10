@@ -83,8 +83,12 @@ export class ComplaintService {
 
     let matchedDept = mockDepartments.find(d => d.code === deptCode) || mockDepartments[0];
     if (isSupabaseConfigured) {
-      const { data: dbDept } = await supabase.from('departments').select('id, code').eq('code', deptCode).single();
-      if (dbDept) matchedDept = dbDept;
+      try {
+        const { data: dbDept } = await supabase.from('departments').select('id, code').eq('code', deptCode).single();
+        if (dbDept) matchedDept = dbDept;
+      } catch (err) {
+        // Silent fallback to mockDepartments
+      }
     }
 
     return {
@@ -171,33 +175,45 @@ export class ComplaintService {
     newComplaint.duplicate_matches = duplicateMatches;
 
     if (isSupabaseConfigured) {
-      const { data: inserted, error } = await supabase
-        .from('complaints')
-        .insert([newComplaint])
-        .select()
-        .single();
-      if (error) throw error;
+      try {
+        const { data: inserted, error } = await supabase
+          .from('complaints')
+          .insert([newComplaint])
+          .select()
+          .single();
+        if (error) throw error;
 
-      // Insert AI prediction
-      await supabase.from('ai_predictions').insert([{
-        complaint_id: inserted.id,
-        model_name: aiPrediction.model_name || 'JanSahayak-NLP',
-        model_version: aiPrediction.model_version || '1.0.0',
-        predicted_department_id: departmentId,
-        predicted_priority: priority,
-        confidence_score: aiPrediction.confidence_score || 0.85
-      }]);
+        // Insert AI prediction
+        try {
+          await supabase.from('ai_predictions').insert([{
+            complaint_id: inserted.id,
+            model_name: aiPrediction.model_name || 'JanSahayak-NLP',
+            model_version: aiPrediction.model_version || '1.0.0',
+            predicted_department_id: departmentId,
+            predicted_priority: priority,
+            confidence_score: aiPrediction.confidence_score || 0.85
+          }]);
+        } catch (predErr) {
+          console.warn('[AI Prediction Save Warning]', predErr.message);
+        }
 
-      // Insert History
-      await supabase.from('complaint_history').insert([{
-        complaint_id: inserted.id,
-        performed_by: user.id,
-        to_status: 'submitted',
-        action: 'Complaint Registered',
-        remarks: 'Registered via JanSahayak AI Citizen Portal'
-      }]);
+        // Insert History
+        try {
+          await supabase.from('complaint_history').insert([{
+            complaint_id: inserted.id,
+            performed_by: user.id,
+            to_status: 'submitted',
+            action: 'Complaint Registered',
+            remarks: 'Registered via JanSahayak AI Citizen Portal'
+          }]);
+        } catch (histErr) {
+          console.warn('[Complaint History Save Warning]', histErr.message);
+        }
 
-      return inserted;
+        return inserted;
+      } catch (dbErr) {
+        console.warn('[ComplaintService] Supabase insert failed, using mock data store fallback:', dbErr.message);
+      }
     }
 
     // Dev/Mock fallback
