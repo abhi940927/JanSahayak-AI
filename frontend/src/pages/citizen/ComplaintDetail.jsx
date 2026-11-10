@@ -23,7 +23,8 @@ import {
   Send
 } from 'lucide-react';
 
-const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000/api/ai';
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api/ai' : 'http://localhost:8000/api/ai');
 
 export const ComplaintDetail = () => {
   const { id } = useParams();

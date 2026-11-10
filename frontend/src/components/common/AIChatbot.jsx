@@ -26,7 +26,8 @@ import api from '../../services/api';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
-const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000/api/ai';
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api/ai' : 'http://localhost:8000/api/ai');
 
 // Client-side knowledge base fallback
 const LOCAL_CIVIC_KNOWLEDGE = [
