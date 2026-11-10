@@ -21,76 +21,106 @@ function sendSmtpEmail({ host, port = 465, user, pass, from, to, subject, html, 
     });
 
     let step = 0;
-    let logBuffer = '';
+    let accumulated = '';
 
     const cleanPass = (pass || '').replace(/\s+/g, '');
     const sender = from || user;
 
+    const extractEmail = (str) => {
+      const match = String(str || '').match(/<([^>]+)>/);
+      return match ? match[1].trim() : String(str || '').trim();
+    };
+
+    const fromAddr = extractEmail(sender);
+    const toAddr = extractEmail(to);
+
     const boundary = '----=_Part_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+    const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
+    const base64Html = Buffer.from(html, 'utf-8').toString('base64').replace(/(.{76})/g, '$1\r\n');
+    const base64Text = Buffer.from(text, 'utf-8').toString('base64').replace(/(.{76})/g, '$1\r\n');
 
     const mimeMessage = [
-      `From: JanSahayak AI <${sender}>`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
+      `From: JanSahayak AI <${fromAddr}>`,
+      `To: <${toAddr}>`,
+      `Subject: ${encodedSubject}`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
       `--${boundary}`,
       `Content-Type: text/plain; charset=UTF-8`,
-      `Content-Transfer-Encoding: 7bit`,
+      `Content-Transfer-Encoding: base64`,
       '',
-      text,
+      base64Text,
       '',
       `--${boundary}`,
       `Content-Type: text/html; charset=UTF-8`,
-      `Content-Transfer-Encoding: 7bit`,
+      `Content-Transfer-Encoding: base64`,
       '',
-      html,
+      base64Html,
       '',
       `--${boundary}--`,
       ''
     ].join('\r\n');
 
     socket.setEncoding('utf8');
-    socket.setTimeout(12000, () => {
-      socket.destroy(new Error('SMTP connection timed out'));
+    socket.setTimeout(15000, () => {
+      socket.destroy(new Error('SMTP connection timed out after 15 seconds'));
     });
 
+    const isCompleteResponse = (data, expectedCode) => {
+      const lines = data.split(/\r?\n/).filter(Boolean);
+      const lastLine = lines[lines.length - 1] || '';
+      return lastLine.startsWith(`${expectedCode} `);
+    };
+
     socket.on('data', (data) => {
-      logBuffer += data;
-      const code = data.slice(0, 3);
+      accumulated += data;
 
       try {
-        if (step === 0 && code === '220') {
+        if (step === 0 && isCompleteResponse(accumulated, '220')) {
           step++;
+          accumulated = '';
           socket.write(`EHLO localhost\r\n`);
-        } else if (step === 1 && code === '250') {
+        } else if (step === 1 && isCompleteResponse(accumulated, '250')) {
           step++;
+          accumulated = '';
           socket.write(`AUTH LOGIN\r\n`);
-        } else if (step === 2 && code === '334') {
+        } else if (step === 2 && isCompleteResponse(accumulated, '334')) {
           step++;
+          accumulated = '';
           socket.write(Buffer.from(user).toString('base64') + '\r\n');
-        } else if (step === 3 && code === '334') {
+        } else if (step === 3 && isCompleteResponse(accumulated, '334')) {
           step++;
+          accumulated = '';
           socket.write(Buffer.from(cleanPass).toString('base64') + '\r\n');
-        } else if (step === 4 && code === '235') {
+        } else if (step === 4 && isCompleteResponse(accumulated, '235')) {
           step++;
-          socket.write(`MAIL FROM:<${sender}>\r\n`);
-        } else if (step === 5 && code === '250') {
+          accumulated = '';
+          socket.write(`MAIL FROM:<${fromAddr}>\r\n`);
+        } else if (step === 5 && isCompleteResponse(accumulated, '250')) {
           step++;
-          socket.write(`RCPT TO:<${to}>\r\n`);
-        } else if (step === 6 && code === '250') {
+          accumulated = '';
+          socket.write(`RCPT TO:<${toAddr}>\r\n`);
+        } else if (step === 6 && isCompleteResponse(accumulated, '250')) {
           step++;
+          accumulated = '';
           socket.write(`DATA\r\n`);
-        } else if (step === 7 && code === '354') {
+        } else if (step === 7 && isCompleteResponse(accumulated, '354')) {
           step++;
+          accumulated = '';
           socket.write(mimeMessage + '\r\n.\r\n');
-        } else if (step === 8 && code === '250') {
+        } else if (step === 8 && isCompleteResponse(accumulated, '250')) {
           step++;
+          accumulated = '';
           socket.write(`QUIT\r\n`);
-          resolve({ success: true, message: 'Delivered via SMTP' });
-        } else if (code.startsWith('4') || code.startsWith('5')) {
-          reject(new Error(`SMTP error ${code}: ${data.trim()}`));
+          resolve({ success: true, message: 'Delivered via Gmail SMTP' });
+        } else {
+          // Check for error status
+          const lines = accumulated.split(/\r?\n/).filter(Boolean);
+          const lastLine = lines[lines.length - 1] || '';
+          if (/^[45]\d\d\s/.test(lastLine)) {
+            reject(new Error(`SMTP Rejected at step ${step}: ${lastLine}`));
+          }
         }
       } catch (err) {
         reject(err);
@@ -103,7 +133,7 @@ function sendSmtpEmail({ host, port = 465, user, pass, from, to, subject, html, 
 
     socket.on('end', () => {
       if (step < 8) {
-        reject(new Error(`SMTP connection closed prematurely at step ${step}. Log: ${logBuffer}`));
+        reject(new Error(`SMTP connection closed prematurely at step ${step}. Last response: ${accumulated.trim()}`));
       }
     });
   });
