@@ -144,7 +144,19 @@ export const FileComplaint = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.description || !formData.address) {
-      setError('Please fill in all mandatory fields');
+      setError('Please fill in all mandatory fields (Title, Description, and Address)');
+      return;
+    }
+    if (formData.title.trim().length < 5) {
+      setError(`Complaint title must be at least 5 characters (currently ${formData.title.trim().length})`);
+      return;
+    }
+    if (formData.description.trim().length < 10) {
+      setError(`Detailed description must be at least 10 characters (currently ${formData.description.trim().length})`);
+      return;
+    }
+    if (formData.address.trim().length < 5) {
+      setError('Please provide a specific street address or landmark (at least 5 characters)');
       return;
     }
     if (!formData.consent) {
@@ -157,14 +169,14 @@ export const FileComplaint = () => {
       setError('');
 
       const payload = {
-        title: formData.title,
-        description: formData.description,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         department_id: formData.department_id || selectedDept || null,
         category_id: formData.category_id || null,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode,
+        address: formData.address.trim(),
+        city: formData.city.trim() || 'New Delhi',
+        state: formData.state.trim() || 'Delhi',
+        pincode: formData.pincode ? formData.pincode.trim() : null,
         latitude: formData.latitude,
         longitude: formData.longitude,
         preferred_language: formData.preferred_language,
@@ -211,9 +223,14 @@ export const FileComplaint = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Complaint Title <span className="text-rose-500">*</span>
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Complaint Title <span className="text-rose-500">*</span>
+              </label>
+              <span className={`text-[11px] ${formData.title.trim().length >= 5 ? 'text-emerald-600 font-semibold' : 'text-slate-400'}`}>
+                {formData.title.trim().length} / 5 chars min
+              </span>
+            </div>
             <input
               type="text"
               required
@@ -230,7 +247,11 @@ export const FileComplaint = () => {
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Detailed Description <span className="text-rose-500">*</span>
               </label>
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-2">
+                <span className={`text-[11px] font-semibold ${formData.description.trim().length >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {formData.description.trim().length} / 10 chars min
+                </span>
+                <span className="text-slate-300">|</span>
                 <span className="text-[11px] text-slate-400 font-medium">Language:</span>
                 {[
                   { code: 'en', label: 'English' },

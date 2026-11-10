@@ -32,7 +32,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.message || 'Network request failed';
+    let message = error.response?.data?.message || error.message || 'Network request failed';
+    if (error.response?.data?.errors && Array.isArray(error.response.data.errors) && error.response.data.errors.length > 0) {
+      const fieldErrors = error.response.data.errors.map(e => e.message).join('. ');
+      if (!message.includes(':') && !message.includes(fieldErrors)) {
+        message = `${message}: ${fieldErrors}`;
+      }
+    }
     return Promise.reject(new Error(message));
   }
 );
