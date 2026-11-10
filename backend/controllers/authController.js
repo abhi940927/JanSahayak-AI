@@ -282,17 +282,38 @@ export const loginUser = async (req, res, next) => {
     let user = findUserByIdOrEmail(normalizedEmail);
 
     if (!user) {
-      // Allow demo citizen login
-      if (normalizedEmail.includes('citizen')) {
-        user = mockUsers.find(u => u.role === 'citizen');
-      } else if (normalizedEmail.includes('officer')) {
+      // Check role keyword aliases
+      if (normalizedEmail.includes('officer')) {
         user = mockUsers.find(u => u.role === 'officer');
       } else if (normalizedEmail.includes('admin') || normalizedEmail.includes('dept')) {
         user = mockUsers.find(u => u.role === 'department_admin');
       } else if (normalizedEmail.includes('super')) {
         user = mockUsers.find(u => u.role === 'super_admin');
       } else {
-        return res.status(401).json({ success: false, message: 'Invalid credentials or account does not exist' });
+        // Auto-provision new citizen account dynamically
+        const derivedName = normalizedEmail.split('@')[0]
+          .replace(/[._0-9]+/g, ' ')
+          .trim()
+          .replace(/\b\w/g, c => c.toUpperCase()) || 'Citizen User';
+
+        user = {
+          id: uuidv4(),
+          email: normalizedEmail,
+          full_name: derivedName,
+          dob: '2000-01-01',
+          phone_number: '+91 98765 43210',
+          avatar_url: null,
+          role: 'citizen',
+          roles: ['citizen'],
+          department_id: null,
+          designation: 'Citizen / Resident',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        saveDynamicUser(user);
+        // Dispatch registration welcome email as first-time provisioning
+        sendAuthMailer({ user, ipAddress: clientIp, eventType: 'registration' });
       }
     }
 

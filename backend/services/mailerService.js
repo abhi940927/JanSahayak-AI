@@ -4,8 +4,136 @@
  * with user details (Name, Email, DOB, IP) and platform visual guide.
  */
 
+import tls from 'node:tls';
 import { mockSentEmails } from './mockDataStore.js';
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
+
+/**
+ * Sends an email over standard SMTP with implicit TLS (Port 465, e.g. Gmail SMTP)
+ * Zero external dependencies, pure Node.js native TLS.
+ */
+function sendSmtpEmail({ host, port = 465, user, pass, from, to, subject, html, text }) {
+  return new Promise((resolve, reject) => {
+    const socket = tls.connect({
+      host: host || 'smtp.gmail.com',
+      port: Number(port) || 465,
+      rejectUnauthorized: false
+    });
+
+    let step = 0;
+    let logBuffer = '';
+
+    const cleanPass = (pass || '').replace(/\s+/g, '');
+    const sender = from || user;
+
+    const boundary = '----=_Part_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+
+    const mimeMessage = [
+      `From: JanSahayak AI <${sender}>`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+      `--${boundary}`,
+      `Content-Type: text/plain; charset=UTF-8`,
+      `Content-Transfer-Encoding: 7bit`,
+      '',
+      text,
+      '',
+      `--${boundary}`,
+      `Content-Type: text/html; charset=UTF-8`,
+      `Content-Transfer-Encoding: 7bit`,
+      '',
+      html,
+      '',
+      `--${boundary}--`,
+      ''
+    ].join('\r\n');
+
+    socket.setEncoding('utf8');
+    socket.setTimeout(12000, () => {
+      socket.destroy(new Error('SMTP connection timed out'));
+    });
+
+    socket.on('data', (data) => {
+      logBuffer += data;
+      const code = data.slice(0, 3);
+
+      try {
+        if (step === 0 && code === '220') {
+          step++;
+          socket.write(`EHLO localhost\r\n`);
+        } else if (step === 1 && code === '250') {
+          step++;
+          socket.write(`AUTH LOGIN\r\n`);
+        } else if (step === 2 && code === '334') {
+          step++;
+          socket.write(Buffer.from(user).toString('base64') + '\r\n');
+        } else if (step === 3 && code === '334') {
+          step++;
+          socket.write(Buffer.from(cleanPass).toString('base64') + '\r\n');
+        } else if (step === 4 && code === '235') {
+          step++;
+          socket.write(`MAIL FROM:<${sender}>\r\n`);
+        } else if (step === 5 && code === '250') {
+          step++;
+          socket.write(`RCPT TO:<${to}>\r\n`);
+        } else if (step === 6 && code === '250') {
+          step++;
+          socket.write(`DATA\r\n`);
+        } else if (step === 7 && code === '354') {
+          step++;
+          socket.write(mimeMessage + '\r\n.\r\n');
+        } else if (step === 8 && code === '250') {
+          step++;
+          socket.write(`QUIT\r\n`);
+          resolve({ success: true, message: 'Delivered via SMTP' });
+        } else if (code.startsWith('4') || code.startsWith('5')) {
+          reject(new Error(`SMTP error ${code}: ${data.trim()}`));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    socket.on('error', (err) => {
+      reject(err);
+    });
+
+    socket.on('end', () => {
+      if (step < 8) {
+        reject(new Error(`SMTP connection closed prematurely at step ${step}. Log: ${logBuffer}`));
+      }
+    });
+  });
+}
+
+/**
+ * Sends an email via Resend API if configured
+ */
+async function sendResendEmail({ apiKey, from, to, subject, html, text }) {
+  const sender = from || 'JanSahayak AI <onboarding@resend.dev>';
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: sender,
+      to: [to],
+      subject,
+      html,
+      text
+    })
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Resend API Error: ${res.status} - ${errorText}`);
+  }
+  return await res.json();
+}
 
 /**
  * Builds the official JanSahayak AI HTML email template
@@ -318,9 +446,59 @@ export async function sendAuthMailer({ user, ipAddress, eventType = 'login' }) {
     }
   }
 
+  // Attempt real outbound email dispatch
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const resendApiKey = process.env.RESEND_API_KEY;
+
+  if (smtpUser && smtpPass) {
+    try {
+      console.log(`[JanSahayak Mailer] Connecting to SMTP (${process.env.SMTP_HOST || 'smtp.gmail.com'}) to deliver to ${user.email}...`);
+      await sendSmtpEmail({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: process.env.SMTP_PORT || 465,
+        user: smtpUser,
+        pass: smtpPass,
+        from: process.env.SMTP_FROM || smtpUser,
+        to: user.email,
+        subject,
+        html,
+        text: plainText
+      });
+      mailRecord.delivery_status = 'delivered_smtp';
+      console.log(`📬 [JanSahayak Mailer] Real email successfully sent to ${user.email} via SMTP!`);
+    } catch (smtpErr) {
+      mailRecord.delivery_status = 'smtp_failed';
+      mailRecord.delivery_error = smtpErr.message;
+      console.warn(`⚠️ [JanSahayak Mailer] SMTP delivery failed: ${smtpErr.message}. Mail stored in local preview.`);
+    }
+  } else if (resendApiKey) {
+    try {
+      console.log(`[JanSahayak Mailer] Delivering to ${user.email} via Resend API...`);
+      await sendResendEmail({
+        apiKey: resendApiKey,
+        from: process.env.RESEND_FROM,
+        to: user.email,
+        subject,
+        html,
+        text: plainText
+      });
+      mailRecord.delivery_status = 'delivered_resend';
+      console.log(`📬 [JanSahayak Mailer] Real email successfully delivered to ${user.email} via Resend API!`);
+    } catch (resendErr) {
+      mailRecord.delivery_status = 'resend_failed';
+      mailRecord.delivery_error = resendErr.message;
+      console.warn(`⚠️ [JanSahayak Mailer] Resend API failed: ${resendErr.message}`);
+    }
+  } else {
+    mailRecord.delivery_status = 'queued_local';
+    console.log(`ℹ️ [JanSahayak Mailer] No SMTP_USER/SMTP_PASS in .env. Email queued in local memory.`);
+    console.log(`🔗 Preview email rendered in browser: http://localhost:5001/api/mailer/preview`);
+  }
+
   // Console log security dispatch
   console.log(`=================================================`);
-  console.log(`✉️ [JanSahayak Mailer] Email Dispatched Successfully`);
+  console.log(`✉️ [JanSahayak Mailer] Email Dispatched (${mailRecord.delivery_status})`);
   console.log(`📥 To: ${user.email} (${user.full_name || 'Citizen'})`);
   console.log(`📌 Subject: ${subject}`);
   console.log(`🌐 Client IP: ${normalizedIp}`);
