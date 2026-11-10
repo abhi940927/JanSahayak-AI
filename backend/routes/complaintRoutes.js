@@ -4,11 +4,17 @@ import {
   getComplaints,
   getComplaintById,
   updateStatus,
-  submitFeedback
+  submitFeedback,
+  reverseGeocodeLocation,
+  ipLocationLookup
 } from '../controllers/complaintController.js';
 import { authenticateUser, requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Geocoding and IP location helper endpoints (accessible before auth guard)
+router.get('/geo/reverse', reverseGeocodeLocation);
+router.get('/geo/ip-lookup', ipLocationLookup);
 
 router.use(authenticateUser);
 
