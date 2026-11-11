@@ -45,27 +45,43 @@ export const getPublicPlatformSummary = async (req, res, next) => {
 export const getCitizenAnalytics = async (req, res, next) => {
   try {
     const citizenId = req.user.id;
+    let citizenIds = [citizenId];
 
     if (isSupabaseConfigured) {
+      if (req.user?.email) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', req.user.email.toLowerCase().trim())
+          .maybeSingle();
+
+        if (prof?.id && !citizenIds.includes(prof.id)) {
+          citizenIds.push(prof.id);
+        }
+      }
+
       const { data: complaints, error } = await supabase
         .from('complaints')
         .select('status, priority, created_at')
-        .eq('citizen_id', citizenId);
+        .in('citizen_id', citizenIds);
 
-      if (error) throw error;
+      if (!error && complaints) {
+        const total = complaints.length;
+        const pending = complaints.filter(c => ['submitted', 'verified', 'assigned'].includes(c.status)).length;
+        const in_progress = complaints.filter(c => c.status === 'in_progress').length;
+        const resolved = complaints.filter(c => ['resolved', 'closed'].includes(c.status)).length;
 
-      const total = complaints.length;
-      const pending = complaints.filter(c => ['submitted', 'verified', 'assigned'].includes(c.status)).length;
-      const in_progress = complaints.filter(c => c.status === 'in_progress').length;
-      const resolved = complaints.filter(c => ['resolved', 'closed'].includes(c.status)).length;
-
-      return res.json({
-        success: true,
-        data: { total, pending, in_progress, resolved }
-      });
+        return res.json({
+          success: true,
+          data: { total, pending, in_progress, resolved }
+        });
+      }
     }
 
-    const complaints = mockComplaints.filter(c => c.citizen_id === citizenId);
+    const complaints = mockComplaints.filter(c => 
+      citizenIds.includes(c.citizen_id) || 
+      (req.user?.email && c.citizen_email && c.citizen_email.toLowerCase() === req.user.email.toLowerCase())
+    );
     const total = complaints.length;
     const pending = complaints.filter(c => ['submitted', 'verified', 'assigned'].includes(c.status)).length;
     const in_progress = complaints.filter(c => c.status === 'in_progress').length;

@@ -175,6 +175,8 @@ export class ComplaintService {
     newComplaint.duplicate_matches = duplicateMatches;
 
     // Always ensure new complaint is recorded in local memory store for instant lookup
+    newComplaint.citizen_email = user.email || null;
+    newComplaint.citizen_name = user.full_name || user.name || 'Citizen User';
     mockComplaints.unshift(newComplaint);
 
     mockHistory.push({
@@ -190,9 +192,65 @@ export class ComplaintService {
 
     if (isSupabaseConfigured) {
       try {
+        let effectiveCitizenId = user.id;
+
+        // Ensure effectiveCitizenId exists in Supabase profiles to satisfy foreign key constraint
+        if (user.email) {
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', user.email.toLowerCase().trim())
+            .maybeSingle();
+
+          if (existingProfile) {
+            effectiveCitizenId = existingProfile.id;
+          } else {
+            const { data: createdProfile } = await supabase
+              .from('profiles')
+              .insert([{
+                id: user.id,
+                name: user.full_name || user.name || 'Citizen User',
+                email: user.email.toLowerCase().trim(),
+                phone: user.phone_number || user.phone || null,
+                role: 'citizen'
+              }])
+              .select('id')
+              .maybeSingle();
+
+            if (createdProfile) {
+              effectiveCitizenId = createdProfile.id;
+            }
+          }
+        }
+
+        // Clean payload for Supabase complaints table (omit client-only fields like duplicate_matches)
+        const sbComplaintPayload = {
+          id: newComplaint.id,
+          tracking_number: newComplaint.tracking_number,
+          citizen_id: effectiveCitizenId,
+          department_id: newComplaint.department_id,
+          category_id: newComplaint.category_id || null,
+          title: newComplaint.title,
+          description: newComplaint.description,
+          preferred_language: newComplaint.preferred_language || 'en',
+          status: newComplaint.status || 'submitted',
+          priority: newComplaint.priority || 'medium',
+          is_escalated: false,
+          escalation_level: 0,
+          address: newComplaint.address,
+          city: newComplaint.city || 'New Delhi',
+          state: newComplaint.state || 'Delhi',
+          pincode: newComplaint.pincode || null,
+          latitude: newComplaint.latitude || null,
+          longitude: newComplaint.longitude || null,
+          sla_due_at: newComplaint.sla_due_at,
+          created_at: newComplaint.created_at,
+          updated_at: newComplaint.updated_at
+        };
+
         const { data: inserted, error } = await supabase
           .from('complaints')
-          .insert([newComplaint])
+          .insert([sbComplaintPayload])
           .select()
           .single();
         if (error) throw error;
@@ -221,7 +279,7 @@ export class ComplaintService {
         try {
           await supabase.from('complaint_history').insert([{
             complaint_id: inserted.id,
-            performed_by: user.id,
+            performed_by: effectiveCitizenId,
             to_status: 'submitted',
             action: 'Complaint Registered',
             remarks: 'Registered via JanSahayak AI Citizen Portal'
@@ -230,7 +288,12 @@ export class ComplaintService {
           console.warn('[Complaint History Save Warning]', histErr.message);
         }
 
-        return inserted;
+        return {
+          ...inserted,
+          citizen: user,
+          department: mockDepartments.find(d => d.id === departmentId) || null,
+          category: mockCategories.find(cat => cat.id === newComplaint.category_id) || null
+        };
       } catch (dbErr) {
         console.warn('[ComplaintService] Supabase insert failed, using mock data store fallback:', dbErr.message);
       }
@@ -259,14 +322,30 @@ export class ComplaintService {
       try {
         let query = supabase.from('complaints').select(`
           *,
-          citizen:profiles!citizen_id(id, full_name, email, phone_number),
+          citizen:profiles!citizen_id(id, name, email, phone),
           department:departments!department_id(id, name, code),
           category:categories!category_id(id, name, code)
         `, { count: 'exact' });
 
         // Apply role based security
-        if (user?.role === 'citizen' && user?.id) {
-          query = query.eq('citizen_id', user.id);
+        if (user?.role === 'citizen') {
+          const citizenIds = [user.id];
+          if (user.email) {
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', user.email.toLowerCase().trim())
+              .maybeSingle();
+
+            if (prof?.id && !citizenIds.includes(prof.id)) {
+              citizenIds.push(prof.id);
+            }
+          }
+          if (citizenIds.length === 1) {
+            query = query.eq('citizen_id', citizenIds[0]);
+          } else {
+            query = query.in('citizen_id', citizenIds);
+          }
         } else if ((user?.role === 'officer' || user?.role === 'department_admin') && user?.department_id) {
           query = query.eq('department_id', user.department_id);
         }
@@ -274,12 +353,22 @@ export class ComplaintService {
         if (status) query = query.eq('status', status);
         if (priority) query = query.eq('priority', priority);
         if (department_id) query = query.eq('department_id', department_id);
-        if (search) query = query.ilike('title', `%${search}%`);
+        if (search) query = query.or(`title.ilike.%${search}%,tracking_number.ilike.%${search}%`);
 
         query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
         const { data, count, error } = await query;
         if (!error && data) {
-          return { complaints: data, total: count || data.length };
+          const normalized = data.map(c => ({
+            ...c,
+            citizen: c.citizen ? {
+              ...c.citizen,
+              full_name: c.citizen.name || c.citizen.full_name || 'Citizen User',
+              name: c.citizen.name || c.citizen.full_name || 'Citizen User',
+              phone_number: c.citizen.phone || c.citizen.phone_number || '',
+              phone: c.citizen.phone || c.citizen.phone_number || ''
+            } : null
+          }));
+          return { complaints: normalized, total: count || normalized.length };
         }
       } catch (sbErr) {
         console.warn('[ComplaintService] Supabase list warning, using local store:', sbErr.message);
@@ -289,8 +378,12 @@ export class ComplaintService {
     // In-memory mock filtering fallback
     let filtered = [...mockComplaints];
 
-    if (user?.role === 'citizen' && user?.id) {
-      filtered = filtered.filter(c => c.citizen_id === user.id);
+    if (user?.role === 'citizen') {
+      filtered = filtered.filter(c =>
+        c.citizen_id === user?.id ||
+        (user?.email && c.citizen_email && c.citizen_email.toLowerCase() === user.email.toLowerCase()) ||
+        (user?.email && c.citizen?.email && c.citizen.email.toLowerCase() === user.email.toLowerCase())
+      );
     } else if ((user?.role === 'officer' || user?.role === 'department_admin') && user?.department_id) {
       filtered = filtered.filter(c => c.department_id === user.department_id);
     }
@@ -335,7 +428,7 @@ export class ComplaintService {
         const isUUID = cleanIdentifier.includes('-') && cleanIdentifier.length === 36;
         let query = supabase.from('complaints').select(`
           *,
-          citizen:profiles!citizen_id(id, full_name, email, phone_number),
+          citizen:profiles!citizen_id(id, name, email, phone),
           department:departments!department_id(id, name, code, contact_email, contact_phone),
           category:categories!category_id(id, name, code)
         `);
@@ -348,6 +441,14 @@ export class ComplaintService {
 
         const { data, error } = await query.maybeSingle();
         if (!error && data) {
+          data.citizen = data.citizen ? {
+            ...data.citizen,
+            full_name: data.citizen.name || data.citizen.full_name || 'Citizen User',
+            name: data.citizen.name || data.citizen.full_name || 'Citizen User',
+            phone_number: data.citizen.phone || data.citizen.phone_number || '',
+            phone: data.citizen.phone || data.citizen.phone_number || ''
+          } : null;
+
           // Fetch history
           try {
             const { data: history } = await supabase
