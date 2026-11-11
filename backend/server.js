@@ -12,7 +12,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
-import { processAIChat } from './services/aiChatService.js';
+import { processAIChat, classifyGrievance } from './services/aiChatService.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -60,6 +60,17 @@ app.post('/api/ai/chat', async (req, res) => {
   } catch (err) {
     // High-performance in-process multilingual NLP engine fallback
     const result = processAIChat(req.body.message);
+    return res.json(result);
+  }
+});
+
+app.post('/api/ai/classify', async (req, res) => {
+  try {
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    const response = await axios.post(`${aiUrl}/api/ai/classify`, req.body, { timeout: 3000 });
+    return res.json(response.data);
+  } catch (err) {
+    const result = classifyGrievance(req.body?.title, req.body?.description);
     return res.json(result);
   }
 });

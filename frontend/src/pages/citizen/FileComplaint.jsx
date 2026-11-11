@@ -85,12 +85,22 @@ export const FileComplaint = () => {
   const triggerAiPrediction = async () => {
     try {
       setAiLoading(true);
-      const res = await axios.post(`${AI_SERVICE_URL}/classify`, {
-        title: formData.title,
-        description: formData.description || formData.title
-      });
+      let res;
+      try {
+        res = await axios.post(`${AI_SERVICE_URL}/classify`, {
+          title: formData.title,
+          description: formData.description || formData.title
+        }, { timeout: 3000 });
+      } catch (microserviceErr) {
+        // Resilient fallback to backend AI proxy
+        const fallbackData = await api.post('/ai/classify', {
+          title: formData.title,
+          description: formData.description || formData.title
+        });
+        res = { data: fallbackData.data || fallbackData };
+      }
 
-      if (res.data) {
+      if (res && res.data) {
         setAiSuggestion(res.data);
         // Automatically auto-select department and category if citizen has not manually picked one
         if (!selectedDept && res.data.predicted_department) {
