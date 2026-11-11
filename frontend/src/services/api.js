@@ -11,11 +11,25 @@ const api = axios.create({
   }
 });
 
-// Request Interceptor: Attach Supabase Token or Demo Role
+// Request Interceptor: Attach Supabase Token, Client Identity Headers, or Demo Role
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('jansahayak_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Attach user identity headers so sessions seamlessly recover even across server reloads/cold starts
+  const cachedUserStr = localStorage.getItem('jansahayak_user');
+  if (cachedUserStr) {
+    try {
+      const cached = JSON.parse(cachedUserStr);
+      if (cached?.email) {
+        config.headers['x-user-email'] = cached.email;
+      }
+      if (cached?.id) {
+        config.headers['x-user-id'] = cached.id;
+      }
+    } catch {}
   }
 
   // Demo role header support for testing environment

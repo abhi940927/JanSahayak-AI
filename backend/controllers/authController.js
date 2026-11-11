@@ -6,6 +6,19 @@ import { sendAuthMailer } from '../services/mailerService.js';
 // In-memory store for reset tokens (fallback when Supabase is offline)
 const resetTokens = new Map(); // email -> { token, expiresAt }
 
+export const createSessionToken = (user, activeRole) => {
+  const role = activeRole || user.role || 'citizen';
+  const payload = {
+    id: user.id,
+    email: user.email,
+    role,
+    roles: user.roles || [role],
+    name: user.full_name || user.name || 'Citizen User'
+  };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  return `mock-token:${role}:${user.id}:${Date.now()}:${encoded}`;
+};
+
 export const registerCitizen = async (req, res, next) => {
   try {
     const { full_name, email, password, confirm_password, dob, phone_number, avatar_url } = req.body;
@@ -37,7 +50,7 @@ export const registerCitizen = async (req, res, next) => {
     // Special designated Super Admin & MCD Dept Admin account
     if (normalizedEmail === 'abhisingh940927@gmail.com') {
       const adminUser = findUserByIdOrEmail('abhisingh940927@gmail.com');
-      const mockToken = `mock-token:super_admin:${adminUser.id}:${Date.now()}`;
+      const mockToken = createSessionToken(adminUser, 'super_admin');
       sendAuthMailer({ user: adminUser, ipAddress: clientIp, eventType: 'registration' });
       return res.status(201).json({
         success: true,
@@ -141,7 +154,7 @@ export const registerCitizen = async (req, res, next) => {
     saveDynamicUser(newCitizen);
     sendAuthMailer({ user: newCitizen, ipAddress: clientIp, eventType: 'registration' });
 
-    const mockToken = `mock-token:${newCitizen.role}:${newCitizen.id}:${Date.now()}`;
+    const mockToken = createSessionToken(newCitizen, newCitizen.role);
 
     return res.status(201).json({
       success: true,
@@ -175,7 +188,7 @@ export const loginUser = async (req, res, next) => {
       const adminUser = findUserByIdOrEmail('abhisingh940927@gmail.com');
       const userRoles = ['super_admin', 'department_admin', 'citizen'];
       const activeRole = portal_context || 'super_admin';
-      const mockToken = `mock-token:${activeRole}:${adminUser.id}:${Date.now()}`;
+      const mockToken = createSessionToken(adminUser, activeRole);
 
       sendAuthMailer({ user: adminUser, ipAddress: clientIp, eventType: 'login' });
 
@@ -339,7 +352,7 @@ export const loginUser = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access denied. Super administrator authority required.' });
     }
 
-    const mockToken = `mock-token:${activeRole}:${user.id}:${Date.now()}`;
+    const mockToken = createSessionToken(user, activeRole);
     sendAuthMailer({ user, ipAddress: clientIp, eventType: 'login' });
 
     return res.json({
@@ -607,7 +620,7 @@ export const googleAuth = async (req, res, next) => {
       user = newCitizen;
     }
 
-    const mockToken = `mock-token:${user.role}:${user.id}:${Date.now()}`;
+    const mockToken = createSessionToken(user, user.role);
     const clientIp = (req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || req.ip || '127.0.0.1').replace(/^::ffff:/, '');
     sendAuthMailer({ user, ipAddress: clientIp, eventType: 'login' });
 

@@ -1,5 +1,117 @@
+import { v4 as uuidv4 } from 'uuid';
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
-import { mockUsers, findUserByIdOrEmail } from '../services/mockDataStore.js';
+import { mockUsers, findUserByIdOrEmail, saveDynamicUser } from '../services/mockDataStore.js';
+
+export const resolveMockUser = async (token, req) => {
+  if (!token || !token.startsWith('mock-token:')) return null;
+  const parts = token.split(':');
+  const userRole = parts[1] || 'citizen';
+  const userIdOrEmail = parts[2];
+
+  let matchedUser = userIdOrEmail ? findUserByIdOrEmail(userIdOrEmail) : null;
+
+  // 1. Check for base64url encoded payload in token parts
+  if (!matchedUser && parts.length >= 4) {
+    for (let i = 3; i < parts.length; i++) {
+      try {
+        const decodedStr = Buffer.from(parts[i], 'base64url').toString('utf8');
+        const decoded = JSON.parse(decodedStr);
+        if (decoded && (decoded.email || decoded.id)) {
+          matchedUser = {
+            id: decoded.id || userIdOrEmail,
+            email: decoded.email,
+            full_name: decoded.name || decoded.full_name || 'Citizen User',
+            name: decoded.name || decoded.full_name || 'Citizen User',
+            phone_number: decoded.phone_number || decoded.phone || '+91 98765 43210',
+            dob: decoded.dob || null,
+            avatar_url: decoded.avatar_url || null,
+            role: decoded.role || userRole,
+            roles: Array.isArray(decoded.roles) ? decoded.roles : [decoded.role || userRole],
+            designation: (decoded.role || userRole) === 'citizen' ? 'Citizen / Resident' : 'Government Officer',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          saveDynamicUser(matchedUser);
+          break;
+        }
+      } catch {}
+    }
+  }
+
+  // 2. Check client identity headers
+  const headerEmail = req?.headers?.['x-user-email'] ? String(req.headers['x-user-email']).toLowerCase().trim() : null;
+  const headerId = req?.headers?.['x-user-id'] ? String(req.headers['x-user-id']).trim() : null;
+
+  if (!matchedUser && (headerEmail || headerId)) {
+    matchedUser = findUserByIdOrEmail(headerEmail) || findUserByIdOrEmail(headerId);
+  }
+
+  // 3. Fallback to Supabase database lookup
+  if (!matchedUser && isSupabaseConfigured) {
+    try {
+      const candidates = [userIdOrEmail, headerEmail, headerId].filter(Boolean);
+      for (const cand of candidates) {
+        const isEmail = cand.includes('@');
+        const query = isEmail
+          ? supabase.from('profiles').select('*').eq('email', cand).maybeSingle()
+          : supabase.from('profiles').select('*').eq('id', cand).maybeSingle();
+
+        const { data: profile } = await query;
+        if (profile) {
+          const validRoles = ['citizen', 'officer', 'department_admin', 'super_admin'];
+          const activeRole = validRoles.includes(profile.role) ? profile.role : (userRole || 'citizen');
+          matchedUser = {
+            ...profile,
+            full_name: profile.full_name || profile.name || '',
+            name: profile.name || profile.full_name || '',
+            phone_number: profile.phone_number || profile.phone || '',
+            phone: profile.phone || profile.phone_number || '',
+            role: activeRole,
+            roles: [activeRole],
+            designation: activeRole === 'citizen' ? 'Citizen / Resident' : 'Government Officer',
+            is_active: true,
+            created_at: profile.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          saveDynamicUser(matchedUser);
+          break;
+        }
+      }
+    } catch (sbErr) {
+      console.warn('[Session Fallback SB Notice]:', sbErr.message);
+    }
+  }
+
+  // 4. Auto-restore citizen session for valid citizen mock token or recognized client email
+  if (!matchedUser && (headerEmail || userRole === 'citizen')) {
+    const emailToUse = headerEmail || (userIdOrEmail && userIdOrEmail.includes('@') ? userIdOrEmail : 'citizen.user@jansahayak.gov.in');
+    const derivedName = emailToUse.split('@')[0]
+      .replace(/[._0-9]+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, c => c.toUpperCase()) || 'Citizen User';
+
+    matchedUser = {
+      id: (userIdOrEmail && userIdOrEmail.length > 10) ? userIdOrEmail : uuidv4(),
+      email: emailToUse,
+      full_name: derivedName,
+      name: derivedName,
+      phone_number: '+91 98765 43210',
+      dob: '2000-01-01',
+      avatar_url: null,
+      role: userRole,
+      roles: [userRole],
+      department_id: null,
+      designation: userRole === 'citizen' ? 'Citizen / Resident' : 'Government Officer',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    saveDynamicUser(matchedUser);
+  }
+
+  return matchedUser;
+};
 
 export const authenticateUser = async (req, res, next) => {
   try {
@@ -22,11 +134,9 @@ export const authenticateUser = async (req, res, next) => {
       });
     }
 
-    // Handle mock token
+    // Handle mock token with resilient session recovery
     if (token.startsWith('mock-token:')) {
-      const parts = token.split(':');
-      const userIdOrEmail = parts[2];
-      const matchedUser = userIdOrEmail ? findUserByIdOrEmail(userIdOrEmail) : null;
+      const matchedUser = await resolveMockUser(token, req);
 
       if (!matchedUser) {
         return res.status(401).json({
@@ -74,13 +184,15 @@ export const authenticateUser = async (req, res, next) => {
         } else if (Array.isArray(profile.roles) && profile.roles.length > 0) {
           userRoles = profile.roles;
         } else {
-          userRoles = [profile.role || 'citizen'];
+          const validRoles = ['citizen', 'officer', 'department_admin', 'super_admin'];
+          userRoles = [validRoles.includes(profile.role) ? profile.role : 'citizen'];
         }
 
         const localUser = findUserByIdOrEmail(user.id) || findUserByIdOrEmail(user.email);
         req.user = {
           ...localUser,
           ...profile,
+          role: userRoles[0],
           full_name: profile.full_name || profile.name || localUser?.full_name || '',
           name: profile.name || profile.full_name || localUser?.name || '',
           phone_number: profile.phone_number || profile.phone || localUser?.phone_number || '',
@@ -123,9 +235,7 @@ export const optionalAuth = async (req, res, next) => {
     }
 
     if (token.startsWith('mock-token:')) {
-      const parts = token.split(':');
-      const userIdOrEmail = parts[2];
-      req.user = userIdOrEmail ? findUserByIdOrEmail(userIdOrEmail) : null;
+      req.user = await resolveMockUser(token, req);
       return next();
     }
 
@@ -150,13 +260,15 @@ export const optionalAuth = async (req, res, next) => {
           } else if (profile?.roles) {
             userRoles = profile.roles;
           } else {
-            userRoles = [profile?.role || 'citizen'];
+            const validRoles = ['citizen', 'officer', 'department_admin', 'super_admin'];
+            userRoles = [validRoles.includes(profile?.role) ? profile.role : 'citizen'];
           }
 
           const localUser = findUserByIdOrEmail(user.id) || findUserByIdOrEmail(user.email);
           req.user = profile ? {
             ...localUser,
             ...profile,
+            role: userRoles[0],
             full_name: profile.full_name || profile.name || localUser?.full_name || '',
             name: profile.name || profile.full_name || localUser?.name || '',
             phone_number: profile.phone_number || profile.phone || localUser?.phone_number || '',
