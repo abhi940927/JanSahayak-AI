@@ -347,12 +347,20 @@ export class ComplaintService {
             query = query.in('citizen_id', citizenIds);
           }
         } else if ((user?.role === 'officer' || user?.role === 'department_admin') && user?.department_id) {
-          query = query.eq('department_id', user.department_id);
+          if (department_id === 'all') {
+            // Evaluator / cross-agency console view: do not restrict by department
+          } else if (department_id) {
+            query = query.eq('department_id', department_id);
+          } else {
+            query = query.eq('department_id', user.department_id);
+          }
         }
 
         if (status) query = query.eq('status', status);
         if (priority) query = query.eq('priority', priority);
-        if (department_id) query = query.eq('department_id', department_id);
+        if (department_id && department_id !== 'all' && user?.role !== 'officer' && user?.role !== 'department_admin') {
+          query = query.eq('department_id', department_id);
+        }
         if (search) query = query.or(`title.ilike.%${search}%,tracking_number.ilike.%${search}%`);
 
         query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
@@ -385,12 +393,20 @@ export class ComplaintService {
         (user?.email && c.citizen?.email && c.citizen.email.toLowerCase() === user.email.toLowerCase())
       );
     } else if ((user?.role === 'officer' || user?.role === 'department_admin') && user?.department_id) {
-      filtered = filtered.filter(c => c.department_id === user.department_id);
+      if (department_id === 'all') {
+        // Cross-department console view
+      } else if (department_id) {
+        filtered = filtered.filter(c => c.department_id === department_id);
+      } else {
+        filtered = filtered.filter(c => c.department_id === user.department_id);
+      }
     }
 
     if (status) filtered = filtered.filter(c => c.status === status);
     if (priority) filtered = filtered.filter(c => c.priority === priority);
-    if (department_id) filtered = filtered.filter(c => c.department_id === department_id);
+    if (department_id && department_id !== 'all' && user?.role !== 'officer' && user?.role !== 'department_admin') {
+      filtered = filtered.filter(c => c.department_id === department_id);
+    }
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter(c => 

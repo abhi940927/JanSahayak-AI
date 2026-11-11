@@ -25,20 +25,42 @@ export const OfficerDashboard = () => {
   const { user } = useAuth();
   const [complaints, setComplaints] = useState([]);
   const [analytics, setAnalytics] = useState({ total: 0, pending: 0, in_progress: 0, resolved: 0, critical: 0 });
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('all');
+
+  useEffect(() => {
+    loadDepartments();
+  }, []);
 
   useEffect(() => {
     loadOfficerData();
-  }, [filterPriority]);
+  }, [filterPriority, filterDepartment]);
+
+  const loadDepartments = async () => {
+    try {
+      const res = await api.get('/departments');
+      if (res.success && res.data) {
+        setDepartments(res.data);
+      }
+    } catch (err) {
+      console.warn('Could not load departments:', err);
+    }
+  };
 
   const loadOfficerData = async () => {
     try {
       setLoading(true);
+      const params = new URLSearchParams();
+      if (filterPriority) params.append('priority', filterPriority);
+      if (filterDepartment) params.append('department_id', filterDepartment);
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
       const [compRes, anaRes] = await Promise.all([
-        api.get(`/complaints${filterPriority ? `?priority=${filterPriority}` : ''}`),
-        api.get('/analytics/officer')
+        api.get(`/complaints${queryString}`),
+        api.get(`/analytics/officer${queryString}`)
       ]);
 
       if (compRes.success) setComplaints(compRes.data || []);
@@ -162,8 +184,8 @@ export const OfficerDashboard = () => {
         </div>
 
         {/* Action / Search Toolbar */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full sm:w-80">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -174,19 +196,37 @@ export const OfficerDashboard = () => {
             />
           </div>
 
-          <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-            <span className="text-xs font-medium text-slate-500">Filter Priority:</span>
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="bg-slate-50 border border-slate-300 rounded-lg text-xs px-2.5 py-1.5 text-slate-700 focus:outline-none"
-            >
-              <option value="">All Priorities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-medium text-slate-500">Department:</span>
+              <select
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
+                className="bg-slate-50 border border-slate-300 rounded-lg text-xs px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-gov-teal-500 max-w-[200px] truncate"
+              >
+                <option value="all">🌐 All Departments (Multi-Agency View)</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.code} - {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-medium text-slate-500">Priority:</span>
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                className="bg-slate-50 border border-slate-300 rounded-lg text-xs px-2.5 py-1.5 text-slate-700 focus:outline-none focus:border-gov-teal-500"
+              >
+                <option value="">All Priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -198,6 +238,7 @@ export const OfficerDashboard = () => {
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
                   <th className="py-3 px-4">Tracking ID</th>
                   <th className="py-3 px-4">Grievance Title & Location</th>
+                  <th className="py-3 px-4">Department</th>
                   <th className="py-3 px-4">Priority</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Filed On</th>
@@ -207,30 +248,45 @@ export const OfficerDashboard = () => {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
                       Loading complaints queue...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-16 text-center">
-                      <div className="max-w-xs mx-auto space-y-2">
+                    <td colSpan={7} className="py-16 text-center">
+                      <div className="max-w-md mx-auto space-y-2">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                           <ClipboardList className="w-5 h-5" />
                         </div>
                         <h4 className="text-sm font-bold text-slate-700">No Complaints In Active Queue</h4>
                         <p className="text-xs text-slate-400">
-                          {filterPriority || search ? 'No grievances match your current search or priority filter.' : 'All assigned civic tasks for your jurisdiction are up to date.'}
+                          {filterPriority || search
+                            ? 'No grievances match your current search or priority filter.'
+                            : filterDepartment !== 'all'
+                            ? 'No grievances found in this specific department queue.'
+                            : 'All assigned civic tasks across departments are currently up to date.'}
                         </p>
-                        {(filterPriority || search) && (
-                          <button
-                            type="button"
-                            onClick={() => { setSearch(''); setFilterPriority(''); }}
-                            className="mt-2 text-xs font-semibold text-gov-teal-700 hover:underline"
-                          >
-                            Reset filters
-                          </button>
-                        )}
+                        <div className="flex items-center justify-center gap-2 pt-2">
+                          {filterDepartment !== 'all' && (
+                            <button
+                              type="button"
+                              onClick={() => setFilterDepartment('all')}
+                              className="px-3 py-1.5 text-xs font-bold bg-gov-teal-50 text-gov-teal-700 border border-gov-teal-300 rounded-lg hover:bg-gov-teal-100 transition"
+                            >
+                              🌐 View All Departments Queue
+                            </button>
+                          )}
+                          {(filterPriority || search) && (
+                            <button
+                              type="button"
+                              onClick={() => { setSearch(''); setFilterPriority(''); }}
+                              className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 underline"
+                            >
+                              Reset filters
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -243,6 +299,11 @@ export const OfficerDashboard = () => {
                       <td className="py-3.5 px-4 max-w-xs">
                         <div className="font-bold text-slate-800 line-clamp-1">{c.title}</div>
                         <div className="text-[11px] text-slate-500 truncate mt-0.5">{c.address || c.city}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                          {c.department?.code || 'GOV'}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4">
                         <PriorityBadge priority={c.priority} />

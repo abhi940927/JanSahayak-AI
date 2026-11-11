@@ -111,8 +111,14 @@ export const getAdminAnalytics = async (req, res, next) => {
       departments = [...mockDepartments];
     }
 
-    // If department admin, scope strictly to their department jurisdiction
-    if (req.user.role === 'department_admin' && req.user.department_id) {
+    // Scope to requested department or user jurisdiction
+    const requestedDept = req.query.department_id;
+    if (requestedDept === 'all') {
+      // Allow multi-agency overview
+    } else if (requestedDept) {
+      complaints = complaints.filter(c => c.department_id === requestedDept);
+      departments = departments.filter(d => d.id === requestedDept);
+    } else if (req.user.role === 'department_admin' && req.user.department_id) {
       complaints = complaints.filter(c => c.department_id === req.user.department_id);
       departments = departments.filter(d => d.id === req.user.department_id);
     }
@@ -159,7 +165,8 @@ export const getAdminAnalytics = async (req, res, next) => {
 
 export const getOfficerAnalytics = async (req, res, next) => {
   try {
-    const officerDeptId = req.user.department_id;
+    const requestedDept = req.query.department_id;
+    const officerDeptId = requestedDept === 'all' ? null : (requestedDept || req.user.department_id);
     let complaints = [];
 
     if (isSupabaseConfigured) {

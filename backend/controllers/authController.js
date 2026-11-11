@@ -296,7 +296,11 @@ export const loginUser = async (req, res, next) => {
 
     if (!user) {
       // Check role keyword aliases
-      if (normalizedEmail.includes('officer')) {
+      if (normalizedEmail.includes('officer.epd') || (normalizedEmail.includes('officer') && normalizedEmail.includes('epd'))) {
+        user = mockUsers.find(u => u.email === 'officer.epd@jansahayak.gov.in');
+      } else if (normalizedEmail.includes('officer.djb') || (normalizedEmail.includes('officer') && normalizedEmail.includes('djb'))) {
+        user = mockUsers.find(u => u.email === 'officer.djb@jansahayak.gov.in');
+      } else if (normalizedEmail.includes('officer')) {
         user = mockUsers.find(u => u.role === 'officer');
       } else if (normalizedEmail.includes('admin') || normalizedEmail.includes('dept')) {
         user = mockUsers.find(u => u.role === 'department_admin');

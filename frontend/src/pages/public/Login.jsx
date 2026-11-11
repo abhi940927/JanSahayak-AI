@@ -563,13 +563,27 @@ export const Login = () => {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 text-center">
                 Standard Evaluation Roles (1-Click Fill)
               </span>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
                 <button
                   type="button"
                   onClick={() => handleQuickDemoFill('citizen@jansahayak.in')}
                   className="p-2 text-left bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors"
                 >
                   👤 Citizen Portal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('officer.epd@jansahayak.gov.in')}
+                  className="p-2 text-left bg-slate-900/80 hover:bg-slate-800 border border-amber-900/40 rounded-lg text-amber-300 hover:text-white transition-colors"
+                >
+                  ⚡ EPD Power Officer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('officer.djb@jansahayak.gov.in')}
+                  className="p-2 text-left bg-slate-900/80 hover:bg-slate-800 border border-sky-900/40 rounded-lg text-sky-300 hover:text-white transition-colors"
+                >
+                  💧 DJB Water Officer
                 </button>
                 <button
                   type="button"
@@ -588,9 +602,9 @@ export const Login = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickDemoFill('superadmin@jansahayak.gov.in')}
-                  className="p-2 text-left bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors"
+                  className="p-2 text-left bg-slate-900/80 hover:bg-slate-800 border border-emerald-900/40 rounded-lg text-emerald-300 hover:text-white transition-colors"
                 >
-                  ⚡ Super Admin
+                  🛡️ Super Admin
                 </button>
               </div>
             </div>

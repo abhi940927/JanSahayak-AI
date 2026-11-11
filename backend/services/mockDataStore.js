@@ -251,6 +251,36 @@ export const mockUsers = [
     updated_at: '2026-01-10T10:00:00.000Z'
   },
   {
+    id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u05',
+    email: 'officer.epd@jansahayak.gov.in',
+    full_name: 'Vikas Sharma',
+    phone_number: '+91 98111 55667',
+    dob: '1987-03-12',
+    avatar_url: null,
+    role: 'officer',
+    roles: ['officer'],
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13',
+    designation: 'Assistant Engineer - Electricity & Power (EPD)',
+    is_active: true,
+    created_at: '2026-01-10T10:00:00.000Z',
+    updated_at: '2026-01-10T10:00:00.000Z'
+  },
+  {
+    id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u06',
+    email: 'officer.djb@jansahayak.gov.in',
+    full_name: 'Manoj Kumar',
+    phone_number: '+91 98111 77889',
+    dob: '1989-07-25',
+    avatar_url: null,
+    role: 'officer',
+    roles: ['officer'],
+    department_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
+    designation: 'Junior Engineer - Delhi Jal Board (DJB)',
+    is_active: true,
+    created_at: '2026-01-10T10:00:00.000Z',
+    updated_at: '2026-01-10T10:00:00.000Z'
+  },
+  {
     id: 'u0eebc99-9c0b-4ef8-bb6d-6bb9bd380u03',
     email: 'admin.mcd@jansahayak.gov.in',
     full_name: 'Sunita Devi',

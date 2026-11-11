@@ -45,16 +45,33 @@ export const AdminDashboard = () => {
     departmentDistribution: [],
     priorityDistribution: []
   });
+  const [departments, setDepartments] = useState([]);
+  const [filterDepartment, setFilterDepartment] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAdminAnalytics();
+    fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    fetchAdminAnalytics();
+  }, [filterDepartment]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/departments');
+      if (res.success && res.data) {
+        setDepartments(res.data);
+      }
+    } catch (err) {
+      console.warn('Could not load departments:', err);
+    }
+  };
 
   const fetchAdminAnalytics = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/analytics/admin');
+      const res = await api.get(`/analytics/admin${filterDepartment ? `?department_id=${filterDepartment}` : ''}`);
       if (res.success && res.data) {
         setData(res.data);
       }
@@ -194,18 +211,32 @@ export const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Department Load Distribution Bar Chart */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-2">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Department Grievance Volume & Resolution</h3>
                 <p className="text-[11px] text-slate-500">Total received vs. resolved across civic boards</p>
               </div>
-              <button
-                onClick={handleExportCSV}
-                className="inline-flex items-center space-x-1.5 text-xs font-semibold text-gov-teal-700 bg-gov-teal-50 hover:bg-gov-teal-100 border border-gov-teal-200 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export CSV</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={filterDepartment}
+                  onChange={(e) => setFilterDepartment(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-lg text-xs px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-gov-teal-500 max-w-[200px] truncate"
+                >
+                  <option value="all">🌐 All Departments (Multi-Agency View)</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.code} - {d.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleExportCSV}
+                  className="inline-flex items-center space-x-1.5 text-xs font-semibold text-gov-teal-700 bg-gov-teal-50 hover:bg-gov-teal-100 border border-gov-teal-200 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
             </div>
 
             <div className="h-64 w-full">
