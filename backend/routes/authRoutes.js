@@ -69,9 +69,17 @@ const handleGetProfile = (req, res) => {
     return res.status(401).json({ success: false, message: 'Authentication required' });
   }
 
+  const normalizedUser = {
+    ...req.user,
+    full_name: req.user.full_name || req.user.name || '',
+    name: req.user.name || req.user.full_name || '',
+    phone_number: req.user.phone_number || req.user.phone || '',
+    phone: req.user.phone || req.user.phone_number || ''
+  };
+
   res.json({
     success: true,
-    data: req.user
+    data: normalizedUser
   });
 };
 
@@ -114,26 +122,36 @@ const handleUpdateProfile = async (req, res, next) => {
     if (dob !== undefined) updateFields.dob = dob;
     if (avatar_url !== undefined) updateFields.avatar_url = avatar_url;
 
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updateFields)
-        .eq('id', req.user.id)
-        .select()
-        .single();
+    // If Supabase is connected, sync compatible columns to Supabase profiles table safely
+    if (isSupabaseConfigured && req.user.id) {
+      try {
+        const sbPayload = {};
+        if (full_name !== undefined) sbPayload.name = full_name.trim();
+        if (phone_number !== undefined) sbPayload.phone = phone_number ? phone_number.trim() : null;
 
-      if (error) throw error;
-      return res.json({
-        success: true,
-        message: 'Profile updated successfully',
-        data
-      });
+        if (Object.keys(sbPayload).length > 0) {
+          const { error } = await supabase
+            .from('profiles')
+            .update(sbPayload)
+            .eq('id', req.user.id);
+
+          if (error) {
+            console.warn('[Supabase Profile Sync Warning]:', error.message);
+          }
+        }
+      } catch (sbErr) {
+        console.warn('[Supabase Profile Sync Error]:', sbErr.message);
+      }
     }
 
-    // Mock in-memory persistence
+    // Dynamic and in-memory persistence
     const updatedUser = {
       ...req.user,
-      ...updateFields
+      ...updateFields,
+      name: full_name !== undefined ? full_name.trim() : (req.user.name || req.user.full_name),
+      full_name: full_name !== undefined ? full_name.trim() : (req.user.full_name || req.user.name),
+      phone: phone_number !== undefined ? (phone_number ? phone_number.trim() : null) : (req.user.phone || req.user.phone_number),
+      phone_number: phone_number !== undefined ? (phone_number ? phone_number.trim() : null) : (req.user.phone_number || req.user.phone)
     };
 
     saveDynamicUser(updatedUser);

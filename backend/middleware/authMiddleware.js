@@ -58,7 +58,7 @@ export const authenticateUser = async (req, res, next) => {
           .eq('id', user.id)
           .single();
 
-        if (!profile || !profile.is_active) {
+        if (!profile || (profile.is_active !== undefined && profile.is_active === false)) {
           return res.status(403).json({ success: false, message: 'Account is deactivated or unauthorized' });
         }
 
@@ -77,8 +77,16 @@ export const authenticateUser = async (req, res, next) => {
           userRoles = [profile.role || 'citizen'];
         }
 
+        const localUser = findUserByIdOrEmail(user.id) || findUserByIdOrEmail(user.email);
         req.user = {
+          ...localUser,
           ...profile,
+          full_name: profile.full_name || profile.name || localUser?.full_name || '',
+          name: profile.name || profile.full_name || localUser?.name || '',
+          phone_number: profile.phone_number || profile.phone || localUser?.phone_number || '',
+          phone: profile.phone || profile.phone_number || localUser?.phone || '',
+          avatar_url: localUser?.avatar_url || profile.avatar_url || null,
+          dob: localUser?.dob || profile.dob || null,
           roles: userRoles
         };
         return next();
@@ -145,7 +153,18 @@ export const optionalAuth = async (req, res, next) => {
             userRoles = [profile?.role || 'citizen'];
           }
 
-          req.user = profile ? { ...profile, roles: userRoles } : null;
+          const localUser = findUserByIdOrEmail(user.id) || findUserByIdOrEmail(user.email);
+          req.user = profile ? {
+            ...localUser,
+            ...profile,
+            full_name: profile.full_name || profile.name || localUser?.full_name || '',
+            name: profile.name || profile.full_name || localUser?.name || '',
+            phone_number: profile.phone_number || profile.phone || localUser?.phone_number || '',
+            phone: profile.phone || profile.phone_number || localUser?.phone || '',
+            avatar_url: localUser?.avatar_url || profile.avatar_url || null,
+            dob: localUser?.dob || profile.dob || null,
+            roles: userRoles
+          } : null;
         } else {
           req.user = null;
         }

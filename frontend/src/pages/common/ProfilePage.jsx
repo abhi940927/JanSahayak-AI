@@ -51,8 +51,8 @@ export const ProfilePage = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        full_name: user.full_name || '',
-        phone_number: user.phone_number || '',
+        full_name: user.full_name || user.name || '',
+        phone_number: user.phone_number || user.phone || '',
         dob: user.dob ? user.dob.split('T')[0] : '',
         avatar_url: user.avatar_url || ''
       });

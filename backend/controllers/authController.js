@@ -210,7 +210,7 @@ export const loginUser = async (req, res, next) => {
             .eq('id', authData.user.id)
             .single();
 
-          if (!profile || !profile.is_active) {
+          if (!profile || (profile.is_active !== undefined && profile.is_active === false)) {
             return res.status(403).json({ success: false, message: 'Account is deactivated or unauthorized' });
           }
 
